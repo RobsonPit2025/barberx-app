@@ -1,0 +1,2 @@
+# barberx-app
+
