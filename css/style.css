@@ -1,56 +1,76 @@
 body {
+  margin: 0;
   font-family: Arial, sans-serif;
-  background: #050505;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  background-color: #f4f4f4;
 }
 
-.container {
-  background: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #ccc;
-  width: 300px;
+.app-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 h1 {
-  text-align: center;
-  color: #333;
+  margin-bottom: 20px;
 }
 
-form {
+.menu {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
-label {
-  margin-top: 10px;
-  font-weight: bold;
+.menu button {
+  padding: 12px;
+  font-size: 16px;
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-input, select, button {
-  padding: 8px;
-  margin-top: 5px;
-  border: 1px solid #ddd;
+.menu button:hover {
+  background-color: #555;
+}
+
+.secao {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.oculto {
+  display: none;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
   border-radius: 5px;
 }
 
 button {
-  background: #007bff;
+  width: 100%;
+  padding: 10px;
+  background-color: #0066cc;
   color: white;
-  font-weight: bold;
-  margin-top: 15px;
-  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
 }
 
-button:hover {
-  background: #0056b3;
-}
-
-#mensagem {
-  text-align: center;
-  margin-top: 15px;
-  color: green;
+.thumb {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 10px;
+  border-radius: 8px;
 }

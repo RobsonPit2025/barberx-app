@@ -1,80 +1,60 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BarberX</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarberX App</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header>
-    <nav>
-      <ul>
-        <li><a href="#agendamento">Agendamento</a></li>
-        <li><a href="#cadastro">Cadastro</a></li>
-        <li><a href="#login">Login</a></li>
-        <li><a href="#midia">Mídia</a></li>
-        <li><a href="#sugestao">Sugestão</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- Agendamento (apenas para clientes logados) -->
-  <section id="agendamento">
-    <h2>Fila Virtual</h2>
-    <p>Bem-vindo! Entre na fila para ser atendido.</p>
-    <div id="agendamento-area">
-      <button onclick="entrarFila()">Entrar na Fila</button>
+  <div class="app-container">
+    <h1>BarberX</h1>
+    
+    <div class="menu">
+      <button onclick="showSection('loginCliente')">Login</button>
+      <button onclick="showSection('cadastro')">Cadastro</button>
+      <button onclick="showSection('agendamento')">Agendamento</button>
+      <button onclick="showSection('portfolio')">Mídia</button>
+      <button onclick="showSection('sugestao')">Sugestão</button>
     </div>
-  </section>
 
-  <!-- Cadastro de clientes -->
-  <section id="cadastro">
-    <h2>Cadastro de Cliente</h2>
-    <form id="formCadastro">
-      <input type="text" placeholder="Nome" required />
-      <input type="email" placeholder="Email" required />
-      <input type="password" placeholder="Senha" required />
-      <button type="submit">Cadastrar</button>
-    </form>
-  </section>
-
-  <!-- Login -->
-  <section id="login">
-    <h2>Login</h2>
-    <form id="formLogin">
-      <input type="email" placeholder="Email" required />
-      <input type="password" placeholder="Senha" required />
-      <button type="submit">Entrar</button>
-    </form>
-  </section>
-
-  <!-- Mídia -->
-  <section id="midia">
-    <h2>Portfólio de Cortes</h2>
-    <div class="barbeiro">
-      <h3>Barbeiro João</h3>
-      <div class="galeria" id="joao">
-        <!-- imagens aqui -->
-      </div>
+    <!-- Seções -->
+    <div id="loginCliente" class="secao oculto">
+      <h2>Login</h2>
+      <input id="loginUsuario" type="text" placeholder="Usuário">
+      <input id="loginSenha" type="password" placeholder="Senha">
+      <button onclick="logar()">Entrar</button>
+      <p id="loginMsg"></p>
     </div>
-    <div class="barbeiro">
-      <h3>Barbeiro Carlos</h3>
-      <div class="galeria" id="carlos">
-        <!-- imagens aqui -->
-      </div>
+
+    <div id="cadastro" class="secao oculto">
+      <h2>Cadastro</h2>
+      <input id="cadastroNome" type="text" placeholder="Nome">
+      <input id="cadastroUsuario" type="text" placeholder="Usuário">
+      <input id="cadastroSenha" type="password" placeholder="Senha">
+      <button onclick="cadastrar()">Cadastrar</button>
     </div>
-  </section>
 
-  <!-- Sugestão -->
-  <section id="sugestao">
-    <h2>Sugestão</h2>
-    <form id="formSugestao">
-      <textarea placeholder="Escreva aqui sua sugestão..." required></textarea>
-      <button type="submit">Enviar</button>
-    </form>
-  </section>
+    <div id="agendamento" class="secao oculto">
+      <h2>Agendamento</h2>
+      <p>Área do cliente para marcar horário.</p>
+    </div>
 
-  <script src="script.js"></script>
+    <div id="portfolio" class="secao oculto">
+      <h2>Portfólio dos Barbeiros</h2>
+      <p><strong>Barbeiro João</strong></p>
+      <img src="img/joao1.jpg" alt="Corte João" class="thumb">
+      <p><strong>Barbeiro Lucas</strong></p>
+      <img src="img/lucas1.jpg" alt="Corte Lucas" class="thumb">
+    </div>
+
+    <div id="sugestao" class="secao oculto">
+      <h2>Deixe sua sugestão</h2>
+      <textarea rows="5" placeholder="Escreva sua sugestão aqui..."></textarea>
+      <button>Enviar</button>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
 </body>
 </html>
