@@ -42,5 +42,24 @@
   </main>
 
   <script src="js/script.js"></script>
+  <script type="module" src="js/auth.js">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
+    authDomain: "barbex-app.firebaseapp.com",
+    projectId: "barbex-app",
+    storageBucket: "barbex-app.firebasestorage.app",
+    messagingSenderId: "91864465722",
+    appId: "1:91864465722:web:7a3365582f3ca63e19d003"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
 </body>
 </html>
