@@ -1,59 +1,45 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BarberX App</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="app-container">
+  <main class="app-container">
     <h1>BarberX</h1>
-    
-    <div class="menu">
-      <button onclick="showSection('loginCliente')">Login</button>
-      <button onclick="showSection('cadastro')">Cadastro</button>
-      <button onclick="showSection('agendamento')">Agendamento</button>
-      <button onclick="showSection('portfolio')">Mídia</button>
-      <button onclick="showSection('sugestao')">Sugestão</button>
-    </div>
+    <nav class="menu">
+      <button onclick="showSection('loginSection')">Login</button>
+      <button onclick="showSection('cadastroSection')">Cadastro</button>
+      <button onclick="showSection('midiaSection')">Mídia</button>
+    </nav>
 
-    <!-- Seções -->
-    <div id="loginCliente" class="secao oculto">
+    <section id="loginSection" class="hidden">
       <h2>Login</h2>
-      <input id="loginUsuario" type="text" placeholder="Usuário">
-      <input id="loginSenha" type="password" placeholder="Senha">
+      <input type="text" id="loginUsuario" placeholder="Usuário" />
+      <input type="password" id="loginSenha" placeholder="Senha" />
       <button onclick="logar()">Entrar</button>
       <p id="loginMsg"></p>
-    </div>
+    </section>
 
-    <div id="cadastro" class="secao oculto">
+    <section id="cadastroSection" class="hidden">
       <h2>Cadastro</h2>
-      <input id="cadastroNome" type="text" placeholder="Nome">
-      <input id="cadastroUsuario" type="text" placeholder="Usuário">
-      <input id="cadastroSenha" type="password" placeholder="Senha">
+      <input type="text" id="cadastroNome" placeholder="Nome completo" />
+      <input type="text" id="cadastroUsuario" placeholder="Usuário" />
+      <input type="password" id="cadastroSenha" placeholder="Senha" />
       <button onclick="cadastrar()">Cadastrar</button>
-    </div>
+    </section>
 
-    <div id="agendamento" class="secao oculto">
-      <h2>Agendamento</h2>
-      <p>Área do cliente para marcar horário.</p>
-    </div>
-
-    <div id="portfolio" class="secao oculto">
-      <h2>Portfólio dos Barbeiros</h2>
-      <p><strong>Barbeiro João</strong></p>
-      <img src="img/joao1.jpg" alt="Corte João" class="thumb">
-      <p><strong>Barbeiro Lucas</strong></p>
-      <img src="img/lucas1.jpg" alt="Corte Lucas" class="thumb">
-    </div>
-
-    <div id="sugestao" class="secao oculto">
-      <h2>Deixe sua sugestão</h2>
-      <textarea rows="5" placeholder="Escreva sua sugestão aqui..."></textarea>
-      <button>Enviar</button>
-    </div>
-  </div>
+    <section id="midiaSection" class="hidden">
+      <h2>Portfólio</h2>
+      <p>Escolha um barbeiro:</p>
+      <ul>
+        <li><a href="#">Barbeiro 1</a></li>
+        <li><a href="#">Barbeiro 2</a></li>
+      </ul>
+    </section>
+  </main>
 
   <script src="js/script.js"></script>
 </body>

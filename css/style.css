@@ -1,76 +1,52 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+  font-family: sans-serif;
+  background-color: #f1f1f1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
 .app-container {
-  max-width: 400px;
-  margin: 0 auto;
+  background: white;
   padding: 20px;
-  background-color: white;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 360px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  text-align: center;
 }
 
-h1 {
-  margin-bottom: 20px;
-}
-
-.menu {
+nav.menu {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 100%;
-}
-
-.menu button {
-  padding: 12px;
-  font-size: 16px;
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.menu button:hover {
-  background-color: #555;
-}
-
-.secao {
-  margin-top: 20px;
-  width: 100%;
-}
-
-.oculto {
-  display: none;
-}
-
-input, textarea {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  margin-bottom: 20px;
 }
 
 button {
-  width: 100%;
   padding: 10px;
-  background-color: #0066cc;
-  color: white;
   border: none;
-  border-radius: 5px;
-  margin-top: 10px;
+  background-color: #333;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.thumb {
+button:hover {
+  background-color: #555;
+}
+
+input {
+  display: block;
   width: 100%;
-  max-width: 100%;
-  margin-top: 10px;
-  border-radius: 8px;
+  margin: 5px 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.hidden {
+  display: none;
 }
