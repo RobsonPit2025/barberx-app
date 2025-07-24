@@ -1,7 +1,7 @@
 import { initializeApp } from ".../firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from ".../firebase-auth.js";
 import { getFirestore, collection, query, where, orderBy, onSnapshot } from ".../firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig } from "./fila.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

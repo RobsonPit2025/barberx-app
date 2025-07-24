@@ -1,38 +1,46 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BarberX</title>
   <link rel="stylesheet" href="css/index.css" />
 </head>
 <body>
-  <div class="app-container">
-    <!-- LOGIN -->
-    <section id="login-section" class="active-section">
+  <main class="container">
+    <h1>BarberX</h1>
+    <nav class="menu">
+      <button onclick="mostrarSecao('login')">Entrar</button>
+      <button onclick="mostrarSecao('cadastro')">Cadastrar</button>
+      <button onclick="mostrarSecao('midia')">Imagens dos Cortes</button>
+    </nav>
+
+    <section id="login" class="secao hidden">
       <h2>Login</h2>
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Senha" />
-      <button id="btnLogin">Entrar</button>
-      <p><button id="btnRegister">Cadastrar</button></p>
+      <input type="email" id="loginEmail" placeholder="Email" />
+      <input type="password" id="loginSenha" placeholder="Senha" />
+      <button onclick="fazerLogin()">Entrar</button>
     </section>
 
-    <!-- AGENDAMENTO -->
-    <section id="agendamento-section" class="hidden-section">
-      <h2>Agendamento</h2>
-      <input type="text" id="nomeAgendamento" placeholder="Seu nome" />
-      <input type="tel" id="celAgendamento" placeholder="Celular" />
-      <select id="barbeiroAgendamento">
-        <option value="">Selecione o barbeiro</option>
-        <option value="Yuri">Yuri</option>
-        <option value="Pablo">Pablo</option>
-      </select>
-      <input type="datetime-local" id="dataAgendamento" />
-      <button id="btnAgendar">Marcar Corte</button>
-      <button id="btnLogout1">Sair</button>
-      <h3>Fila à sua frente:</h3>
-      <ul id="filaCliente"></ul>
+    <section id="cadastro" class="secao hidden">
+      <h2>Cadastro</h2>
+      <input type="text" id="cadastroNome" placeholder="Nome completo" />
+      <input type="email" id="cadastroEmail" placeholder="Email" />
+      <input type="tel" id="cadastroCelular" placeholder="Celular" />
+      <input type="password" id="cadastroSenha" placeholder="Senha" />
+      <button onclick="fazerCadastro()">Cadastrar</button>
     </section>
-  </div>
-  <script type="module" src="js/index.js"></script>
+
+    <section id="midia" class="secao hidden">
+      <h2>Imagens dos Cortes</h2>
+      <ul>
+        <li><a href="#">Mídia Barbeiro Yure</a></li>
+        <li><a href="#">Mídia Barbeiro Pablo</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="js/index.js"></script>
 </body>
 </html>
