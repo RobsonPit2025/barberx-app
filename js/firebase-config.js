@@ -1,9 +1,9 @@
-// firebase-config.js
+// js/firebase-config.js
 export const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
+  authDomain: "barbex-app.firebaseapp.com",
+  projectId: "barbex-app",
+  storageBucket: "barbex-app.appspot.com",
+  messagingSenderId: "91864465722",
+  appId: "1:91864465722:web:7a3365583f3ca63e19d003"
 };

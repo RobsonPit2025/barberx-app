@@ -1,33 +1,27 @@
-// admin.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from ".../firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from ".../firebase-auth.js";
+import { getFirestore, collection, query, where, orderBy, onSnapshot } from ".../firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
-async function carregarAgendamentos() {
-  const agendamentosRef = collection(db, "agendamentos");
-  const q = query(agendamentosRef, orderBy("criadoEm", "desc"), limit(10));
-  const querySnapshot = await getDocs(q);
+onAuthStateChanged(auth, user => {
+  if (!user || user.email !== "admin@barberx.com") window.location.href = "/index.html";
+});
 
-  const container = document.getElementById("agendamentos");
-  container.innerHTML = ""; // limpa antes de preencher
-
-  querySnapshot.forEach((doc) => {
-    const dados = doc.data();
-
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h3>${dados.nome}</h3>
-      <p><strong>Celular:</strong> ${dados.celular}</p>
-      <p><strong>Data:</strong> ${dados.data}</p>
-      <p><small>Agendado em: ${new Date(dados.criadoEm?.seconds * 1000).toLocaleString()}</small></p>
-    `;
-
-    container.appendChild(card);
+function renderQueue(bar, el) {
+  const q = query(collection(db,"agendamentos"), where("barbeiro","==", bar), orderBy("criadoEm"));
+  onSnapshot(q, snap => {
+    el.innerHTML = '';
+    snap.forEach(doc => {
+      el.innerHTML += `<li>${doc.data().nome} - ${doc.data().data}</li>`;
+    });
   });
 }
 
-carregarAgendamentos();
+renderQueue("Yuri", document.querySelector("#yuri ul"));
+renderQueue("Pablo", document.querySelector("#pablo ul"));
+
+document.getElementById("logout2").onclick = () => { signOut(auth); window.location.href="/index.html"; };
