@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,7 +7,7 @@
   <link rel="stylesheet" href="css/index.css" />
 </head>
 <body>
-  <main class="container">
+  <main class="app-container">
     <h1>BarberX</h1>
     <nav class="menu">
       <button onclick="mostrarSecao('login')">Entrar</button>
@@ -16,28 +15,26 @@
       <button onclick="mostrarSecao('midia')">Imagens dos Cortes</button>
     </nav>
 
-    <section id="login" class="secao hidden">
+    <section id="login" class="hidden">
       <h2>Login</h2>
       <input type="email" id="loginEmail" placeholder="Email" />
       <input type="password" id="loginSenha" placeholder="Senha" />
       <button onclick="fazerLogin()">Entrar</button>
     </section>
 
-    <section id="cadastro" class="secao hidden">
+    <section id="cadastro" class="hidden">
       <h2>Cadastro</h2>
       <input type="text" id="cadastroNome" placeholder="Nome completo" />
       <input type="email" id="cadastroEmail" placeholder="Email" />
-      <input type="tel" id="cadastroCelular" placeholder="Celular" />
+      <input type="tel" id="cadastroCelular" placeholder="(99) 99999-9999" />
       <input type="password" id="cadastroSenha" placeholder="Senha" />
-      <button onclick="fazerCadastro()">Cadastrar</button>
+      <button onclick="cadastrarUsuario()">Cadastrar</button>
     </section>
 
-    <section id="midia" class="secao hidden">
+    <section id="midia" class="hidden">
       <h2>Imagens dos Cortes</h2>
-      <ul>
-        <li><a href="#">Mídia Barbeiro Yure</a></li>
-        <li><a href="#">Mídia Barbeiro Pablo</a></li>
-      </ul>
+      <button onclick="alert('Abrir galeria do Yure')">Yure</button>
+      <button onclick="alert('Abrir galeria do Pablo')">Pablo</button>
     </section>
   </main>
 

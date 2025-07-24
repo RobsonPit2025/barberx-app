@@ -1,4 +1,3 @@
-
 body {
   margin: 0;
   font-family: sans-serif;
@@ -9,11 +8,11 @@ body {
   height: 100vh;
 }
 
-.container {
+.app-container {
   background: white;
-  padding: 20px;
+  padding: 30px;
   border-radius: 12px;
-  width: 100%;
+  width: 90%;
   max-width: 400px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: center;
@@ -27,10 +26,11 @@ nav.menu {
 }
 
 input, button {
+  display: block;
   width: 100%;
+  margin: 10px 0;
   padding: 10px;
-  margin-top: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #ccc;
 }
 
@@ -46,8 +46,4 @@ button:hover {
 
 .hidden {
   display: none;
-}
-
-.secao {
-  margin-top: 20px;
 }

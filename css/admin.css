@@ -1,6 +1,0 @@
-body { margin:0; display:flex; font-family:sans-serif; height:100vh;}
-.sidebar{width:200px;background:#111;color:#fff;padding:20px;}
-.content{flex:1;padding:20px;overflow-y:auto;}
-.queue{border:1px solid #ccc;padding:10px;margin-bottom:10px;}
-.queue ul{list-style:none; padding:0;}
-.queue li{margin:5px 0;}
