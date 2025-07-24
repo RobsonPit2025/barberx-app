@@ -15,8 +15,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 window.cadastrar = function () {
-  const email = document.getElementById('cadastroUsuario').value;
-  const senha = document.getElementById('cadastroSenha').value;
+  const email = document.getElementById("cadastroUsuario").value;
+const senha = document.getElementById("cadastroSenha").value;
 
   createUserWithEmailAndPassword(auth, email, senha)
     .then(() => {
