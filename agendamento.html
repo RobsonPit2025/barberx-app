@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Agendamento - BarberX</title>
+  <link rel="stylesheet" href="css/agendamento.css" />
+</head>
+<body>
+  <div class="agendamento-container">
+    <h2>Agendar Corte</h2>
+    <form id="formAgendamento">
+      <input type="text" id="nome" placeholder="Nome completo" required>
+      <input type="tel" id="celular" placeholder="Celular" required>
+      <select id="barbeiro" required>
+        <option value="">Escolha o barbeiro</option>
+        <option value="Yure">Yure</option>
+        <option value="Pablo">Pablo</option>
+      </select>
+      <textarea id="mensagem" placeholder="Mensagem (máx. 200 caracteres)" maxlength="200"></textarea>
+      <button type="submit">Marcar Corte</button>
+    </form>
+    <div id="painelFila"></div>
+  </div>
+  <script src="js/agendamento.js"></script>
+</body>
+</html>
