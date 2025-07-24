@@ -3,63 +3,148 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BarberX-App</title>
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-  <main class="app-container">
-    <h1>BarberX</h1>
-    <nav class="menu">
-      <button onclick="showSection('loginSection')">Login</button>
-      <button onclick="showSection('cadastroSection')">Cadastro</button>
-      <button onclick="showSection('midiaSection')">Mídia</button>
-    </nav>
+  <title>BarberX</title>
+  <link rel="stylesheet" href="css/index.css" />
+  <!-- Firebase SDK -->
+<script type="module">
+  // Configuração do seu projeto Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    <section id="loginSection" class="hidden">
-  <h2>Login</h2>
-  <input type="email" id="loginUsuario" placeholder="E-mail" />
-  <input type="password" id="loginSenha" placeholder="Senha" />
-  <button onclick="logar()">Entrar</button>
-  <p id="loginMsg"></p>
-</section>
-
-<section id="cadastroSection" class="hidden">
-  <h2>Cadastro</h2>
-  <input type="email" id="cadastroUsuario" placeholder="E-mail" />
-  <input type="password" id="cadastroSenha" placeholder="Senha" />
-  <button onclick="cadastrar()">Cadastrar</button>
-</section>
-
-
-    <section id="midiaSection" class="hidden">
-      <h2>Portfólio</h2>
-      <p>Escolha um barbeiro:</p>
-      <ul>
-        <li><a href="#">Barbeiro 1</a></li>
-        <li><a href="#">Barbeiro 2</a></li>
-      </ul>
-    </section>
-  </main>
-
-  <script src="js/script.js"></script>
-  <script type="module" src="js/auth.js">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
   const firebaseConfig = {
-    apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
-    authDomain: "barbex-app.firebaseapp.com",
-    projectId: "barbex-app",
-    storageBucket: "barbex-app.firebasestorage.app",
-    messagingSenderId: "91864465722",
-    appId: "1:91864465722:web:7a3365582f3ca63e19d003"
+  apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
+  authDomain: "barbex-app.firebaseapp.com",
+  projectId: "barbex-app",
+  storageBucket: "barbex-app.firebasestorage.app",
+  messagingSenderId: "91864465722",
+  appId: "1:91864465722:web:7a3365582f3ca63e19d003"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Monitorar login automaticamente
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Se for admin
+      if (user.email === "admin@barberx.com") {
+        mostrarSecao('admin-section');
+      } else {
+        mostrarSecao('agendamento-section');
+      }
+    } else {
+      mostrarSecao('login-section');
+    }
+  });
+
+  // Login Firebase
+  window.login = async () => {
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('password').value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+    } catch (error) {
+      alert("Erro ao fazer login: " + error.message);
+    }
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
+  // Logout Firebase
+  window.logout = async () => {
+    await signOut(auth);
+  };
+
+  // Exibir seções
+  window.mostrarSecao = (idSecao) => {
+    const secoes = document.querySelectorAll('section');
+    secoes.forEach(sec => sec.classList.remove('active-section'));
+    secoes.forEach(sec => sec.classList.add('hidden-section'));
+    document.getElementById(idSecao).classList.remove('hidden-section');
+    document.getElementById(idSecao).classList.add('active-section');
+  };
+
+  // Agendamento (temporário)
+  window.enviarAgendamento = () => {
+    const nome = document.getElementById('nomeAgendamento').value;
+    const cel = document.getElementById('celAgendamento').value;
+    const data = document.getElementById('dataAgendamento').value;
+
+    if (!nome || !cel || !data) {
+      alert("Preencha todos os campos.");
+      return;
+    }
+
+    alert("Agendamento enviado! (em breve será salvo no Firebase)");
+  };
 </script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Seção de Login -->
+    <section id="login-section" class="active-section">
+      <h2>Login</h2>
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Senha" required />
+      <button onclick="login()">Entrar</button>
+    </section>
+
+    <!-- Seção de Agendamento (Cliente) -->
+    <section id="agendamento-section" class="hidden-section">
+      <h2>Agendamento</h2>
+      <input type="text" id="nomeAgendamento" placeholder="Seu nome" />
+      <input type="tel" id="celAgendamento" placeholder="Celular" />
+      <input type="date" id="dataAgendamento" />
+      <button onclick="enviarAgendamento()">Agendar</button>
+      <button onclick="logout()">Sair</button>
+    </section>
+
+    <!-- Seção de Admin -->
+    <section id="admin-section" class="hidden-section">
+      <h2>Painel do Admin</h2>
+      <p>Aqui você verá os agendamentos e dados do sistema.</p>
+      <button onclick="logout()">Sair</button>
+    </section>
+
+  </div>
+
+  <script>
+    // Simulação de login (será substituído pelo Firebase depois)
+    function login() {
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('password').value;
+
+      if (email === 'admin@barberx.com' && senha === '123456') {
+        mostrarSecao('admin-section');
+      } else {
+        mostrarSecao('agendamento-section');
+      }
+    }
+
+    function logout() {
+      mostrarSecao('login-section');
+    }
+
+    function mostrarSecao(idSecao) {
+      const secoes = document.querySelectorAll('section');
+      secoes.forEach(sec => sec.classList.remove('active-section'));
+      secoes.forEach(sec => sec.classList.add('hidden-section'));
+      document.getElementById(idSecao).classList.remove('hidden-section');
+      document.getElementById(idSecao).classList.add('active-section');
+    }
+
+    function enviarAgendamento() {
+      const nome = document.getElementById('nomeAgendamento').value;
+      const cel = document.getElementById('celAgendamento').value;
+      const data = document.getElementById('dataAgendamento').value;
+
+      if (!nome || !cel || !data) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+
+      alert("Agendamento enviado! (em breve será salvo no Firebase)");
+    }
+  </script>
 </body>
 </html>
