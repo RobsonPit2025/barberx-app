@@ -1,9 +1,71 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Admin BarberX</title><link rel="stylesheet" href="css/admin.css" /></head><body>
-  <div class="sidebar"><h2>Admin</h2><button id="logout2">Sair</button></div>
-  <div class="content">
-    <h1>Fila de Agendamentos</h1>
-    <div id="yuri" class="queue"><h3>Yuri</h3><ul></ul></div>
-    <div id="pablo" class="queue"><h3>Pablo</h3><ul></ul></div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin BarberX</title>
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Admin</h2>
+    <button onclick="mostrarSeção('inicio')">Fila do Dia</button>
+    <button onclick="mostrarSeção('relatorio')">Relatório</button>
+    <button onclick="mostrarSeção('imagens')">Adicionar Imagens</button>
+    <button id="logout2">Sair</button>
   </div>
-  <script type="module" src="js/admin.js"></script>
-</body></html>
+
+  <div class="content">
+
+    <!-- Frase motivacional -->
+    <section id="inicio" class="painel active">
+      <h1>Fila de Agendamentos de Hoje</h1>
+      <p id="fraseMotivacional" class="motivacional"></p>
+
+      <div class="fila">
+        <div class="card-fila">
+          <h3>Yure</h3>
+          <ul id="yuri"></ul>
+        </div>
+        <div class="card-fila">
+          <h3>Pablo</h3>
+          <ul id="pablo"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Relatório -->
+    <section id="relatorio" class="painel hidden">
+      <h2>Relatório Mensal</h2>
+      <table id="tabelaRelatorio">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th>Yure</th>
+            <th>Pablo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Upload Imagem -->
+    <section id="imagens" class="painel hidden">
+      <h2>Adicionar Imagens dos Cortes</h2>
+      <label for="barbeiroSelect">Barbeiro:</label>
+      <select id="barbeiroSelect">
+        <option value="yure">Yure</option>
+        <option value="pablo">Pablo</option>
+      </select>
+      <br /><br />
+      <input type="file" id="imagemCorte" />
+      <br /><br />
+      <button onclick="enviarImagem()">Enviar Imagem</button>
+      <p id="mensagemImagem"></p>
+    </section>
+
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #111;
+  color: #fff;
+  height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.sidebar button {
+  padding: 10px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #555;
+}
+
+.content {
+  flex-grow: 1;
+  padding: 30px;
+  background-color: #f4f4f4;
+}
+
+.fila {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.queue {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  flex: 1;
+  min-width: 250px;
+}
+
+.queue h3 {
+  margin-top: 0;
+}
+
+.queue ul {
+  list-style: none;
+  padding: 0;
+}
+
+.queue ul li {
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+.painel {
+  display: none;
+}
+
+.painel.active {
+  display: block;
+}
+
+#adicionarImagens {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#adicionarImagens select,
+#adicionarImagens input,
+#adicionarImagens button {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  max-width: 300px;
+}
+
+/* Tabela do Relatório */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+table th,
+table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+table th {
+  background-color: #333;
+  color: white;
+}
+
+table tr:hover {
+  background-color: #f2f2f2;
+}
+
+.painel {
+  display: none;
+}
+
+.painel.active {
+  display: block;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.motivacional {
+  font-style: italic;
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+.fila {
+  display: flex;
+  gap: 20px;
+}
+
+.card-fila {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  flex: 1;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
