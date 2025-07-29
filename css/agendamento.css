@@ -36,3 +36,7 @@ button {
 button:hover {
   background-color: #555;
 }
+#painelFila {
+  margin-top: 20px;
+  text-align: left;
+}
