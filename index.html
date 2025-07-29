@@ -9,10 +9,11 @@
 <body>
   <main class="app-container">
     <h1>Cruz_Styllos</h1>
+
     <nav class="menu">
       <button onclick="mostrarSecao('login')">Entrar</button>
       <button onclick="mostrarSecao('cadastro')">Cadastrar</button>
-     <button onclick="window.location.href='imagens.html'">Imagens dos Cortes</button>
+      <button onclick="window.location.href='imagens.html'">Imagens dos Cortes</button>
     </nav>
 
     <section id="login" class="hidden">
@@ -26,15 +27,9 @@
       <h2>Cadastro</h2>
       <input type="text" id="cadastroNome" placeholder="Nome completo" />
       <input type="email" id="cadastroEmail" placeholder="Email" />
-      <input type="tel" id="cadastroCelular" placeholder="(99) 99999-9999" maxlength="15" required>
+      <input type="tel" id="cadastroCelular" placeholder="(99) 99999-9999" maxlength="15" required />
       <input type="password" id="cadastroSenha" placeholder="Senha" />
       <button onclick="cadastrarUsuario()">Cadastrar</button>
-    </section>
-
-    <section id="midia" class="hidden">
-      <h2>Imagens dos Cortes</h2>
-      <button onclick="alert('Abrir galeria do Yure')">Yure</button>
-      <button onclick="alert('Abrir galeria do Pablo')">Pablo</button>
     </section>
   </main>
 
