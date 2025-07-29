@@ -101,3 +101,11 @@ h2 {
   font-size: 50px;
   margin-top: 40px;
 }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: url('../img/fundo-imagens.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #fff;
+}
