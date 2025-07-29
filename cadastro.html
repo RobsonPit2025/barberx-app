@@ -19,9 +19,10 @@
     </section>
   </main>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase + Lógica de Cadastro -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
@@ -33,44 +34,54 @@
     };
 
     const app = initializeApp(firebaseConfig);
-  </script>
+    const auth = getAuth(app);
 
-  <!-- Máscara do celular + função de cadastro -->
-  <script>
+    // Função para aplicar máscara no celular
     function aplicarMascaraCelular(input) {
-      input.addEventListener("input", function(e) {
+      input.addEventListener("input", function () {
         let valor = input.value.replace(/\D/g, "");
         if (valor.length > 11) valor = valor.slice(0, 11);
-        if (valor.length > 0) {
-          valor = valor.replace(/^(\d{0,2})(\d{0,5})(\d{0,4}).*/, function (_, ddd, prefixo, sufixo) {
-            let resultado = "";
-            if (ddd) resultado += `(${ddd}`;
-            if (ddd.length === 2) resultado += `) `;
-            if (prefixo) resultado += prefixo;
-            if (prefixo.length === 5 && sufixo) resultado += `-${sufixo}`;
-            return resultado;
-          });
-        }
+
+        valor = valor.replace(/^(\d{0,2})(\d{0,5})(\d{0,4}).*/, function (_, ddd, prefixo, sufixo) {
+          let resultado = "";
+          if (ddd) resultado += `(${ddd}`;
+          if (ddd.length === 2) resultado += `) `;
+          if (prefixo) resultado += prefixo;
+          if (prefixo.length === 5 && sufixo) resultado += `-${sufixo}`;
+          return resultado;
+        });
+
         input.value = valor;
       });
     }
 
-    const campoCelular = document.getElementById("cadastroCelular");
-    if (campoCelular) aplicarMascaraCelular(campoCelular);
+    document.addEventListener("DOMContentLoaded", () => {
+      const campoCelular = document.getElementById("cadastroCelular");
+      if (campoCelular) aplicarMascaraCelular(campoCelular);
+    });
 
-    function cadastrarUsuario() {
-      const nome = document.getElementById('cadastroNome').value;
-      const email = document.getElementById('cadastroEmail').value;
-      const celular = document.getElementById('cadastroCelular').value;
-      const senha = document.getElementById('cadastroSenha').value;
+    // Função de cadastro com Firebase Auth
+    window.cadastrarUsuario = function () {
+      const nome = document.getElementById('cadastroNome').value.trim();
+      const email = document.getElementById('cadastroEmail').value.trim();
+      const celular = document.getElementById('cadastroCelular').value.trim();
+      const senha = document.getElementById('cadastroSenha').value.trim();
 
       if (!nome || !email || !celular || !senha) {
         alert("Preencha todos os campos");
         return;
       }
 
-      alert("Usuário cadastrado com sucesso! (Simulação)");
-    }
+      createUserWithEmailAndPassword(auth, email, senha)
+        .then(() => {
+          alert("Usuário cadastrado com sucesso!");
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("Erro ao cadastrar: " + error.message);
+        });
+    };
   </script>
 </body>
 </html>
