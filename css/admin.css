@@ -149,10 +149,3 @@ table tr:hover {
   flex: 1;
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
-
-body {
-  background: url('../img/bg-admin.jpg') no-repeat center center fixed;
-  background-size: cover;
-  font-family: Arial, sans-serif;
-  color: #0e0000; /* Ajuste conforme necessário */
-}

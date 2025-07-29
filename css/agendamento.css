@@ -40,3 +40,11 @@ button:hover {
   margin-top: 20px;
   text-align: left;
 }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: url('../img/bg-agendamento.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #000; /* Ajuste conforme necessário */
+}
