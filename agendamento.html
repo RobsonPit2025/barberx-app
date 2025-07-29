@@ -21,6 +21,26 @@
     </form>
     <div id="painelFila"></div>
   </div>
-  <script src="js/agendamento.js"></script>
+</div>
+  <script type="module" src="js/agendamento.js"></script>
+  <script>
+    const celularInput = document.getElementById("agendamentoCelular");
+
+    celularInput.addEventListener("input", function () {
+      let valor = celularInput.value.replace(/\D/g, "");
+      if (valor.length > 11) valor = valor.slice(0, 11);
+
+      valor = valor.replace(/^(\d{0,2})(\d{0,5})(\d{0,4}).*/, function (_, ddd, prefixo, sufixo) {
+        let resultado = "";
+        if (ddd) resultado += `(${ddd}`;
+        if (ddd.length === 2) resultado += `) `;
+        if (prefixo) resultado += prefixo;
+        if (prefixo.length === 5 && sufixo) resultado += `-${sufixo}`;
+        return resultado;
+      });
+
+      celularInput.value = valor;
+    });
+  </script>
 </body>
 </html>
