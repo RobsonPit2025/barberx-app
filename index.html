@@ -11,10 +11,10 @@
     <h1>Cruz_Styllos</h1>
 
     <nav class="menu">
-      <button onclick="mostrarSecao('login')">Entrar</button>
-      <button onclick="mostrarSecao('cadastro')">Cadastrar</button>
-      <button onclick="window.location.href='imagens.html'">Imagens dos Cortes</button>
-    </nav>
+  <button onclick="mostrarSecao('login')">Entrar</button>
+  <button onclick="window.location.href='cadastro.html'">Cadastrar</button>
+  <button onclick="window.location.href='imagens.html'">Imagens dos Cortes</button>
+</nav>
 
     <section id="login" class="hidden">
       <h2>Login</h2>
@@ -23,16 +23,27 @@
       <button onclick="fazerLogin()">Entrar</button>
     </section>
 
-    <section id="cadastro" class="hidden">
-      <h2>Cadastro</h2>
-      <input type="text" id="cadastroNome" placeholder="Nome completo" />
-      <input type="email" id="cadastroEmail" placeholder="Email" />
-      <input type="tel" id="cadastroCelular" placeholder="(99) 99999-9999" maxlength="15" required />
-      <input type="password" id="cadastroSenha" placeholder="Senha" />
-      <button onclick="cadastrarUsuario()">Cadastrar</button>
-    </section>
   </main>
 
   <script src="js/index.js"></script>
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
+    authDomain: "barbex-app.firebaseapp.com",
+    projectId: "barbex-app",
+    storageBucket: "barbex-app.firebasestorage.app",
+    messagingSenderId: "91864465722",
+    appId: "1:91864465722:web:7a3365582f3ca63e19d003"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
 </body>
 </html>
