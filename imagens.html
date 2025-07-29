@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Imagens dos Cortes - Cruz_Stylos</title>
+  <link rel="stylesheet" href="css/galeria.css" />
+</head>
+<body>
+  <h1>Portfólio de Cortes</h1>
+
+  <h2>Yuri</h2>
+<div class="galeria-container">
+  <button class="seta esquerda" onclick="scrollGaleria('galeriaYuri', -1)">✂️</button>
+  <div class="galeria" id="galeriaYuri">
+    <img src="img/yuri/corte1.jpeg" alt="Corte Yuri 1" onclick="abrirModal(this.src)" />
+    <img src="img/yuri/corte2.jpeg" alt="Corte Yuri 2" onclick="abrirModal(this.src)" />
+    <!-- ...adicione todas as outras imagens aqui -->
+  </div>
+  <button class="seta direita" onclick="scrollGaleria('galeriaYuri', 1)">✂️</button>
+</div>
+
+<h2>Pablo</h2>
+<div class="galeria-container">
+  <button class="seta esquerda" onclick="scrollGaleria('galeriaPablo', -1)">✂️</button>
+  <div class="galeria" id="galeriaPablo">
+    <img src="img/pablo/corte1.jpeg" alt="Corte Pablo 1" onclick="abrirModal(this.src)" />
+    <img src="img/pablo/corte2.jpeg" alt="Corte Pablo 2" onclick="abrirModal(this.src)" />
+    <!-- ...adicione todas as outras imagens aqui -->
+  </div>
+  <button class="seta direita" onclick="scrollGaleria('galeriaPablo', 1)">✂️</button>
+</div>
+
+  <div id="modal" class="modal hidden">
+    <img id="imagemModal" src="" alt="Visualização" />
+  </div>
+
+  <script>
+    function scrollGaleria(id, direcao) {
+      const galeria = document.getElementById(id);
+      galeria.scrollBy({ left: direcao * 300, behavior: 'smooth' });
+    }
+
+    function abrirModal(src) {
+      document.getElementById("imagemModal").src = src;
+      document.getElementById("modal").classList.remove("hidden");
+    }
+
+    function fecharModal() {
+      document.getElementById("modal").classList.add("hidden");
+    }
+
+    document.getElementById("modal").addEventListener("click", fecharModal);
+
+    // Carregar imagens dinamicamente
+    function carregarImagens(pasta, total, containerId) {
+      const container = document.getElementById(containerId);
+      for (let i = 1; i <= total; i++) {
+        const img = document.createElement("img");
+        img.src = `img/${pasta}/corte${i}.jpeg`;
+        img.alt = `Corte ${pasta} ${i}`;
+        img.onclick = () => abrirModal(img.src);
+        container.appendChild(img);
+      }
+    }
+
+    // Yuri = 35 imagens, Pablo = 8 imagens
+    carregarImagens("yuri", 35, "galeriaYuri");
+    carregarImagens("pablo", 8, "galeriaPablo");
+  </script>
+</body>
+</html>
