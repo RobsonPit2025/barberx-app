@@ -122,7 +122,7 @@ table tr:hover {
   display: none;
 }
 
-.painel.active {
+.painel:not(.hidden) {
   display: block;
 }
 
@@ -149,3 +149,18 @@ table tr:hover {
   flex: 1;
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
+
+.btn-concluir {
+  margin-top: 8px;
+  padding: 5px 10px;
+  background-color: #d9534f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-concluir:hover {
+  background-color: #c9302c;
+}
+

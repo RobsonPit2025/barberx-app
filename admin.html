@@ -8,17 +8,17 @@
 </head>
 <body>
   <div class="sidebar">
-    <h2>Admin</h2>
-    <button onclick="mostrarSeção('inicio')">Fila do Dia</button>
-    <button onclick="mostrarSeção('relatorio')">Relatório</button>
-    <button onclick="mostrarSeção('imagens')">Adicionar Imagens</button>
-    <button id="logout2">Sair</button>
-  </div>
+  <h2>Admin</h2>
+  <button onclick="mostrarSecao('inicio')">Fila do Dia</button>
+  <button onclick="mostrarSecao('relatorio')">Relatório</button>
+  <button onclick="mostrarSecao('imagens')">Adicionar Imagens</button>
+  <button id="logout2">Sair</button>
+</div>
 
   <div class="content">
 
     <!-- Frase motivacional -->
-    <section id="inicio" class="painel active">
+    <section id="inicio" class="painel">
       <h1>Fila de Agendamentos de Hoje</h1>
       <p id="fraseMotivacional" class="motivacional"></p>
 
@@ -66,6 +66,14 @@
 
   </div>
 
+  <script>
+    function mostrarSecao(id) {
+      document.querySelectorAll('.painel').forEach(secao => {
+        secao.classList.add('hidden');
+      });
+      document.getElementById(id).classList.remove('hidden');
+    }
+  </script>
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>
