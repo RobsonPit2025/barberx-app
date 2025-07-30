@@ -1,3 +1,8 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+
 function mostrarSecao(id) {
   console.log("Mostrando seção:", id);
   document.querySelectorAll('.painel').forEach(painel => {
@@ -11,9 +16,6 @@ function mostrarSecao(id) {
 }
 // Torna a função acessível no HTML
 window.mostrarSecao = mostrarSecao;
-// Firebase SDKs
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -115,7 +117,44 @@ function gerarRelatorio(snapshot) {
 
 onSnapshot(collection(db, "relatorios"), gerarRelatorio);
 
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+async function enviarImagem() {
+  const arquivo = document.getElementById("imagemCorte").files[0];
+  const barbeiro = document.getElementById("barbeiroSelect").value;
+  const mensagemDiv = document.getElementById("mensagemImagem");
+
+  if (!arquivo || !barbeiro) {
+    mensagemDiv.textContent = "Selecione um barbeiro e uma imagem.";
+    return;
+  }
+
+  try {
+    const nomeUnico = `${barbeiro}_${Date.now()}.${arquivo.name.split('.').pop()}`;
+    const storageRef = ref(getStorage(), `portfolio/${barbeiro}/${nomeUnico}`);
+
+    await uploadBytes(storageRef, arquivo);
+    const url = await getDownloadURL(storageRef);
+
+    await addDoc(collection(db, "portfolio"), {
+      barbeiro,
+      url,
+      criadoEm: new Date()
+    });
+
+    mensagemDiv.textContent = "Imagem enviada com sucesso!";
+    document.getElementById("imagemCorte").value = "";
+  } catch (error) {
+    console.error("Erro ao enviar imagem:", error);
+    mensagemDiv.textContent = "Erro ao enviar imagem.";
+  }
+}
+window.enviarImagem = enviarImagem;
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnEnviarImagem = document.getElementById("btnEnviarImagem");
+  if (btnEnviarImagem) {
+    btnEnviarImagem.addEventListener("click", enviarImagem);
+  }
+});
 
 // Função para sair
 const logoutBtn = document.getElementById("logout2");
