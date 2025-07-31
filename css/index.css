@@ -56,3 +56,30 @@ body {
   background-size: cover;
   color: rgb(9, 0, 0);
 }
+
+@media (max-width: 600px) {
+  .app-container {
+    width: 80%;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  nav.menu {
+    gap: 8px;
+  }
+
+  input, button {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  h1, h2 {
+    font-size: 1.4rem;
+  }
+
+  body {
+    height: auto;
+    min-height: 100vh;
+    padding: 20px 0;
+  }
+}

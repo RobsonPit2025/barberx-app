@@ -2,6 +2,7 @@
 // Firebase SDKs
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -59,6 +60,18 @@ window.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      // Bloqueio preventivo: impede múltiplos agendamentos com o mesmo número (verificação no Firestore)
+      const agendamentosRef = collection(db, "agendamentos");
+      const querySnapshot = await getDocs(agendamentosRef);
+      const agendamentoPendente = querySnapshot.docs.find(
+        (doc) => doc.data().celular === celular && doc.data().status === "pendente"
+      );
+
+      if (agendamentoPendente) {
+        localStorage.setItem(`bloqueado_${celular}`, "true");
+        alert("Você já possui um agendamento pendente. Aguarde o corte ser concluído.");
+        return;
+      }
       try {
         await addDoc(collection(db, "agendamentos"), {
           nome,
@@ -69,7 +82,19 @@ window.addEventListener("DOMContentLoaded", function () {
           criadoEm: new Date()
         });
 
-        painel.innerHTML = `<h3>Agendamento realizado com sucesso!</h3>`;
+        // Após adicionar, buscar posição na fila e bloquear localmente
+        const querySnapshot = await getDocs(collection(db, "agendamentos"));
+        const filaAtual = querySnapshot.docs.filter(doc => doc.data().barbeiro === barbeiro && doc.data().status === "pendente");
+        const posicaoFila = filaAtual.length;
+
+        painel.innerHTML = `
+          <h3>Agendamento realizado com sucesso!</h3>
+          <p>Você é o número ${posicaoFila} na fila do barbeiro ${barbeiro}.</p>
+        `;
+
+        // Armazena bloqueio localmente (enquanto não for liberado no admin)
+        localStorage.setItem(`bloqueado_${celular}`, "true");
+        // O desbloqueio acontece no painel admin quando o corte é concluído.
         form.reset();
         console.log("Agendamento salvo com sucesso no Firebase.");
       } catch (error) {
@@ -77,5 +102,38 @@ window.addEventListener("DOMContentLoaded", function () {
         alert("Erro ao salvar o agendamento. Tente novamente.");
       }
     });
+  }
+});
+
+// Ouve mensagens de desbloqueio vindas do painel admin
+const unlockChannel = new BroadcastChannel("barberx_unlock");
+unlockChannel.addEventListener("message", (event) => {
+  const celular = event.data?.celular;
+  if (celular) {
+    localStorage.removeItem(`bloqueado_${celular}`);
+    alert("Seu agendamento foi concluído. Agora você pode marcar um novo corte.");
+    console.log(`Agendamento liberado para ${celular}`);
+  }
+});
+
+// Exemplo de função que lida com o clique do botão "Corte Concluído"
+button.addEventListener("click", async () => {
+  try {
+    // Atualiza o status do agendamento no Firebase para 'concluído'
+    await updateDoc(doc(db, "agendamentos", agendamentoId), {
+      status: "concluído"
+    });
+
+    // Remove o card da interface (opcional)
+    agendamentoDiv.remove();
+
+    // Envia mensagem para desbloquear o cliente via BroadcastChannel
+    const unlockChannel = new BroadcastChannel("barberx_unlock");
+    unlockChannel.postMessage({ celular });
+
+    console.log(`Corte concluído para ${nome} (${celular})`);
+  } catch (error) {
+    console.error("Erro ao concluir corte:", error);
+    alert("Erro ao concluir corte. Tente novamente.");
   }
 });
