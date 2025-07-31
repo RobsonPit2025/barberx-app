@@ -48,3 +48,30 @@ body {
   background-size: cover;
   color: #000; /* Ajuste conforme necessário */
 }
+
+@media (max-width: 600px) {
+  .agendamento-container {
+    padding: 20px;
+    margin: 10px;
+    width: 90%;
+    box-sizing: border-box;
+  }
+
+  input, select, textarea, button {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  #painelFila {
+    font-size: 0.9rem;
+  }
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}

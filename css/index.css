@@ -27,11 +27,12 @@ nav.menu {
 
 input, button {
   display: block;
-  width: 100%;
+  width: 99%;
   margin: 10px 0;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
 button {
@@ -62,6 +63,8 @@ body {
     width: 80%;
     padding: 20px;
     margin-bottom: 20px;
+    box-sizing: border-box;
+    margin: 0 auto;
   }
 
   nav.menu {
@@ -71,6 +74,7 @@ body {
   input, button {
     font-size: 1rem;
     padding: 12px;
+    width: 100%;
   }
 
   h1, h2 {
@@ -81,5 +85,9 @@ body {
     height: auto;
     min-height: 100vh;
     padding: 20px 0;
+  }
+
+  html, body {
+    overflow-x: hidden;
   }
 }

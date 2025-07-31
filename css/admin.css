@@ -37,6 +37,7 @@ body {
   flex-grow: 1;
   padding: 30px;
   background-color: #f4f4f4;
+  box-sizing: border-box;
 }
 
 .fila {
@@ -164,3 +165,68 @@ table tr:hover {
   background-color: #c9302c;
 }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px;
+    height: auto;
+  }
+
+  .sidebar button {
+    flex: 1 1 100px;
+    margin: 5px;
+  }
+
+  .content {
+    padding: 15px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .fila {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .queue {
+    min-width: unset;
+  }
+
+  table th,
+  table td {
+    padding: 8px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .content {
+    padding: 15px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .card-fila {
+    width: 100%;
+  }
+
+  .queue {
+    width: 100%;
+  }
+}

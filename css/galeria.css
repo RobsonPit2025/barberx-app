@@ -109,3 +109,36 @@ body {
   background-size: cover;
   color: #fff;
 }
+
+@media (max-width: 600px) {
+  .galeria-container {
+    max-width: 90%;
+    margin: 20px auto;
+    padding: 0 10px;
+  }
+
+  .galeria {
+    padding: 10px 20px;
+    margin: 0;
+    gap: 8px;
+  }
+
+  .galeria img {
+    height: 140px;
+  }
+
+  h1 {
+    font-size: 36px;
+  }
+
+  h2 {
+    font-size: 28px;
+    margin-top: 20px;
+  }
+
+  .seta {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
