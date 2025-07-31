@@ -1,100 +1,70 @@
-# 💈 BarberX App
+# 💈 BarberX - Sistema de Agendamento para Barbearia
 
-Aplicativo moderno para barbearias com funcionalidades completas de **agendamento**, **galeria de cortes**, **fila virtual** e **painel administrativo**.
-
----
-
-## ✨ Funcionalidades
-
-### 👤 1. Acesso de Cliente
-- Cadastro com nome, e-mail, celular (com máscara brasileira) e senha.
-- Login simples.
-- Agendamento com:
-  - Escolha do barbeiro (Yure ou Pablo)
-  - Mensagem personalizada
-- Exibição de mensagem: **"Você é o número X" na fila**
-- Restrição de novo agendamento enquanto estiver na fila.
-- Acompanhamento visual da fila com nomes.
-
-### 🛠️ 2. Acesso de Administrador
-- Login exclusivo (`admin1@barberx.com` ou `admin2@barberx.com`)
-- Painel com três seções:
-  - **Fila do Dia**: Exibe os agendamentos ativos para cada barbeiro.
-  - **Relatório Mensal**: Tabela com a quantidade de cortes feitos por barbeiro em cada mês.
-  - **Adicionar Imagens**: Upload de fotos dos cortes, salvas conforme barbeiro.
-- Frase motivacional do dia na tela principal do admin.
-- Botão **"Corte Concluído"**: remove cliente da fila e libera novo agendamento.
+O **BarberX** é um aplicativo web desenvolvido para facilitar o gerenciamento de agendamentos em uma barbearia. Ele oferece funcionalidades de login, agendamento com fila virtual, painel administrativo, relatório de cortes e galeria de imagens dos barbeiros.
 
 ---
 
-## 📸 3. Portfólio de Cortes
-- Galeria separada por barbeiro: Yure e Pablo
-- As imagens são enviadas via painel admin
-- A galeria pode ser acessada na página principal antes do login
+## 🚀 Funcionalidades Implementadas
+
+✅ Cadastro de usuários com Firebase Authentication  
+✅ Login para clientes e administrador  
+✅ Agendamento de cortes com fila virtual  
+✅ Visualização da posição na fila para o cliente  
+✅ Painel administrativo exclusivo para barbeiros  
+✅ Separação dos agendamentos por barbeiro (Yuri e Pablo)  
+✅ Funcionalidade "Corte Concluído" para remover cliente da fila  
+✅ Relatório mensal de cortes por barbeiro  
+✅ Estrutura para upload de imagens (com Firebase Storage – ainda não ativado)  
+✅ Galeria de portfólio dos barbeiros  
+✅ Responsivo e leve, com navegação em SPA (Single Page Application)
 
 ---
 
-## 🧠 Lógica da Fila
-- Sistema de **fila em memória** para cada barbeiro
-- Cada cliente recebe um número na fila ao agendar
-- O cliente só pode agendar novamente após o corte ser concluído
-- Painel do admin mostra os agendamentos em tempo real com opção de conclusão
+## 📁 Estrutura de Arquivos
 
----
-
-## 🚀 Tecnologias Utilizadas
-- HTML, CSS, JavaScript Puro
-- Firebase Hosting (já implementado)
-- Firebase Firestore e Auth (planejado para a última fase)
-- Git & GitHub para versionamento
-
----
-
-## 📁 Estrutura de Pastas
-public/
+barberx-app/
 ├── index.html
-├── agendamento.html
 ├── admin.html
+├── cadastro.html
+├── login.html
+├── imagens.html
 ├── css/
 │   ├── index.css
-│   ├── agendamento.css
-│   └── admin.css
+│   ├── admin.css
 ├── js/
 │   ├── index.js
+│   ├── admin.js
 │   ├── agendamento.js
-│   └── admin.js
-└── img/ 
+│   ├── firebase-config.js
+├── img/
+│   ├── cortes/ (imagens da galeria)
+├── public/
+│   └── (para deploy no Firebase Hosting)
 
 ---
 
----
+## 🧪 Tecnologias Utilizadas
 
-## 📌 Status do Projeto
-
-✅ **Front-end concluído e funcionando**  
-🚫 **Sem uso de localStorage**  
-📦 **Firebase Auth e Firestore serão integrados após conclusão da lógica local**
-
----
-
-## 🔗 Deploy
-
-Hospedado via Firebase Hosting:  
-🌐 [https://barbex-app.web.app](https://barbex-app.web.app)
+- HTML5, CSS3 e JavaScript
+- Firebase Authentication
+- Firebase Firestore
+- Firebase Hosting
+- (Storage preparado, mas ainda não ativado)
 
 ---
 
-## 📄 Licença
+## ⚠️ Observações
 
-Este projeto está licenciado sob a [MIT License](LICENSE).
-
----
-
-## 📫 Contato
-
-Desenvolvido por **Robson Fernandes**  
-📧 Email: robson302025@gmail.com
+- A galeria de imagens atualmente utiliza arquivos locais.  
+- Upload de imagem pelo painel só será possível após ativação do **Firebase Storage (Blaze Plan)**.
+- A fila de agendamento é controlada por regras internas no código.
+- A autenticação diferencia clientes e administradores por e-mail e senha.
 
 ---
 
-⭐ Se você curtiu esse projeto, deixa uma estrela no repositório!
+## 👤 Desenvolvido por
+
+**Robson Fernandes dos Santos**  
+📍 Salvador - BA  
+📧 robson302025@gmail.com  
+🔗 [Meu GitHub](https://github.com/RobsonPit2025)
