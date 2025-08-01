@@ -12,22 +12,14 @@
   <h2>Yuri</h2>
 <div class="galeria-container">
   <button class="seta esquerda" onclick="scrollGaleria('galeriaYuri', -1)">✂️</button>
-  <div class="galeria" id="galeriaYuri">
-    <img src="img/yuri/corte1.jpeg" alt="Corte Yuri 1" onclick="abrirModal(this.src)" />
-    <img src="img/yuri/corte2.jpeg" alt="Corte Yuri 2" onclick="abrirModal(this.src)" />
-    <!-- ...adicione todas as outras imagens aqui -->
-  </div>
+  <div class="galeria" id="galeriaYuri"></div>
   <button class="seta direita" onclick="scrollGaleria('galeriaYuri', 1)">✂️</button>
 </div>
 
 <h2>Pablo</h2>
 <div class="galeria-container">
   <button class="seta esquerda" onclick="scrollGaleria('galeriaPablo', -1)">✂️</button>
-  <div class="galeria" id="galeriaPablo">
-    <img src="img/pablo/corte1.jpeg" alt="Corte Pablo 1" onclick="abrirModal(this.src)" />
-    <img src="img/pablo/corte2.jpeg" alt="Corte Pablo 2" onclick="abrirModal(this.src)" />
-    <!-- ...adicione todas as outras imagens aqui -->
-  </div>
+  <div class="galeria" id="galeriaPablo"></div>
   <button class="seta direita" onclick="scrollGaleria('galeriaPablo', 1)">✂️</button>
 </div>
 
@@ -65,7 +57,7 @@
     }
 
     // Yuri = 35 imagens, Pablo = 8 imagens
-    carregarImagens("yuri", 35, "galeriaYuri");
+    carregarImagens("yuri", 32, "galeriaYuri");
     carregarImagens("pablo", 8, "galeriaPablo");
   </script>
 </body>
