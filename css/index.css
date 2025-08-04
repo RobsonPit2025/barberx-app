@@ -82,9 +82,8 @@ body {
   }
 
   body {
-    height: auto;
-    min-height: 100vh;
-    padding: 20px 0;
+    background: url('../img/index-mobile.png') no-repeat center center fixed;
+    background-size: cover;
   }
 
   html, body {
