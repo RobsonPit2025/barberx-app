@@ -84,12 +84,18 @@ window.addEventListener("DOMContentLoaded", function () {
 
         // Após adicionar, buscar posição na fila e bloquear localmente
         const querySnapshot = await getDocs(collection(db, "agendamentos"));
-        const filaAtual = querySnapshot.docs.filter(doc => doc.data().barbeiro === barbeiro && doc.data().status === "pendente");
+        const filaAtual = querySnapshot.docs
+          .filter(doc => doc.data().barbeiro === barbeiro && doc.data().status === "pendente")
+          .sort((a, b) => a.data().criadoEm.toDate() - b.data().criadoEm.toDate());
+        const nomesFila = filaAtual
+          .filter(doc => doc.data().celular !== celular)
+          .map((doc, index) => `${index + 1}º - ${doc.data().nome}`);
         const posicaoFila = filaAtual.length;
 
         painel.innerHTML = `
           <h3>Agendamento realizado com sucesso!</h3>
           <p>Você é o número ${posicaoFila} na fila do barbeiro ${barbeiro}.</p>
+          ${nomesFila.length > 0 ? `<p>Pessoas na sua frente:</p><ul>${nomesFila.map(nome => `<li>${nome}</li>`).join("")}</ul>` : ""}
         `;
 
         // Armazena bloqueio localmente (enquanto não for liberado no admin)
@@ -113,27 +119,5 @@ unlockChannel.addEventListener("message", (event) => {
     localStorage.removeItem(`bloqueado_${celular}`);
     alert("Seu agendamento foi concluído. Agora você pode marcar um novo corte.");
     console.log(`Agendamento liberado para ${celular}`);
-  }
-});
-
-// Exemplo de função que lida com o clique do botão "Corte Concluído"
-button.addEventListener("click", async () => {
-  try {
-    // Atualiza o status do agendamento no Firebase para 'concluído'
-    await updateDoc(doc(db, "agendamentos", agendamentoId), {
-      status: "concluído"
-    });
-
-    // Remove o card da interface (opcional)
-    agendamentoDiv.remove();
-
-    // Envia mensagem para desbloquear o cliente via BroadcastChannel
-    const unlockChannel = new BroadcastChannel("barberx_unlock");
-    unlockChannel.postMessage({ celular });
-
-    console.log(`Corte concluído para ${nome} (${celular})`);
-  } catch (error) {
-    console.error("Erro ao concluir corte:", error);
-    alert("Erro ao concluir corte. Tente novamente.");
   }
 });

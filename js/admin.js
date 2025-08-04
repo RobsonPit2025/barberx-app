@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
@@ -37,46 +37,73 @@ const containerPablo = document.getElementById("agendamentosPablo");
 function renderAgendamento(dados, container, id) {
   const div = document.createElement("div");
   div.classList.add("agendamento");
+  const dataHora = new Date(dados.timestamp?.seconds * 1000 || Date.now());
+  const horaFormatada = dados.horarioFormatado || dataHora.toLocaleTimeString("pt-BR");
+  const posicaoTexto = dados.posicao ? `${dados.posicao}º` : "—";
+
   div.innerHTML = `
+    <p><strong>${posicaoTexto} na fila</strong></p>
     <p><strong>Nome:</strong> ${dados.nome}</p>
     <p><strong>Celular:</strong> ${dados.celular}</p>
     <p><strong>Mensagem:</strong> ${dados.mensagem}</p>
+    <p><strong>Hora:</strong> ${horaFormatada}</p>
     <button class="btn-concluir" data-id="${id}">Corte Concluído</button>
   `;
   container.appendChild(div);
 
   // Botão de concluir
-div.querySelector(".btn-concluir").addEventListener("click", async () => {
-  try {
-    // Registrar no Firestore (coleção relatorios)
-    const dataAtual = new Date();
-    await addDoc(collection(db, "relatorios"), {
-      barbeiro: dados.barbeiro,
-      data: dataAtual.toISOString(),
-    });
+  div.querySelector(".btn-concluir").addEventListener("click", async () => {
+    try {
+      // Registrar no Firestore (coleção relatorios)
+      const dataAtual = new Date();
+      await addDoc(collection(db, "relatorios"), {
+        barbeiro: dados.barbeiro,
+        data: dataAtual.toISOString(),
+      });
 
-    // Remover da fila de agendamentos
-    await deleteDoc(doc(db, "agendamentos", id));
-    console.log("Agendamento finalizado e registrado.");
-  } catch (error) {
-    console.error("Erro ao concluir corte:", error);
-  }
-});
+      // Remover da fila de agendamentos
+      await deleteDoc(doc(db, "agendamentos", id));
+      console.log("Agendamento finalizado e registrado.");
+    } catch (error) {
+      console.error("Erro ao concluir corte:", error);
+    }
+  });
 }
 
-onSnapshot(collection(db, "agendamentos"), (snapshot) => {
+const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "in", ["Yuri", "Yure"]));
+const qPablo = query(collection(db, "agendamentos"), where("barbeiro", "==", "Pablo"));
+
+onSnapshot(qYuri, (snapshot) => {
   containerYuri.innerHTML = "";
-  containerPablo.innerHTML = "";
-
-  snapshot.forEach((docSnap) => {
+  const docsOrdenados = snapshot.docs.sort((a, b) => {
+    const t1 = a.data().criadoEm?.seconds || 0;
+    const t2 = b.data().criadoEm?.seconds || 0;
+    return t1 - t2;
+  });
+  docsOrdenados.forEach((docSnap, index) => {
     const data = docSnap.data();
-    const barbeiro = data.barbeiro?.toLowerCase();
+    const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+    const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+    data.posicao = index + 1;
+    data.horarioFormatado = horarioFormatado;
+    renderAgendamento(data, containerYuri, docSnap.id);
+  });
+});
 
-    if (barbeiro === "yuri" || barbeiro === "yure") {
-      renderAgendamento(data, containerYuri, docSnap.id);
-    } else if (barbeiro === "pablo") {
-      renderAgendamento(data, containerPablo, docSnap.id);
-    }
+onSnapshot(qPablo, (snapshot) => {
+  containerPablo.innerHTML = "";
+  const docsOrdenados = snapshot.docs.sort((a, b) => {
+    const t1 = a.data().criadoEm?.seconds || 0;
+    const t2 = b.data().criadoEm?.seconds || 0;
+    return t1 - t2;
+  });
+  docsOrdenados.forEach((docSnap, index) => {
+    const data = docSnap.data();
+    const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+    const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+    data.posicao = index + 1;
+    data.horarioFormatado = horarioFormatado;
+    renderAgendamento(data, containerPablo, docSnap.id);
   });
 });
 
