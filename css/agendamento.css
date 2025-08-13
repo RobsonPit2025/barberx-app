@@ -55,6 +55,7 @@ body {
     margin: 10px;
     width: 90%;
     box-sizing: border-box;
+    opacity: 90%;
   }
 
   input, select, textarea, button {
@@ -64,6 +65,11 @@ body {
 
   #painelFila {
     font-size: 0.9rem;
+  }
+  
+  body {
+    background: url('../img/fundo-agendamento.png') no-repeat center center fixed;
+    background-size: cover;
   }
 }
 

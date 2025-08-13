@@ -3,6 +3,7 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { onSnapshot as onSnapshotFirestore, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -22,6 +23,8 @@ if (!getApps().length) {
   app = getApps()[0];
 }
 const db = getFirestore(app);
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+const auth = getAuth();
 
 window.addEventListener("DOMContentLoaded", function () {
   const celularInput = document.getElementById("agendamentoCelular");
@@ -73,20 +76,28 @@ window.addEventListener("DOMContentLoaded", function () {
         return;
       }
       try {
+        const user = auth.currentUser;
+        const email = user ? user.email : "";
+
         await addDoc(collection(db, "agendamentos"), {
           nome,
           celular,
           barbeiro,
           mensagem,
+          criadoEm: new Date(),
           status: "pendente",
-          criadoEm: new Date()
+          email // <-- adiciona o e-mail automaticamente
         });
 
         // Após adicionar, buscar posição na fila e bloquear localmente
         const querySnapshot = await getDocs(collection(db, "agendamentos"));
         const filaAtual = querySnapshot.docs
           .filter(doc => doc.data().barbeiro === barbeiro && doc.data().status === "pendente")
-          .sort((a, b) => a.data().criadoEm.toDate() - b.data().criadoEm.toDate());
+          .sort((a, b) => {
+            const dataA = new Date(a.data().criadoEm);
+            const dataB = new Date(b.data().criadoEm);
+            return dataA - dataB;
+          });
         const nomesFila = filaAtual
           .filter(doc => doc.data().celular !== celular)
           .map((doc, index) => `${index + 1}º - ${doc.data().nome}`);
@@ -109,6 +120,58 @@ window.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
+  // ========== Monitorar em tempo real a posição do usuário logado na fila ==========
+  const painelFila = document.getElementById("painelFila");
+
+  auth.onAuthStateChanged((user) => {
+    if (user && painelFila) {
+      const userEmail = user.email;
+
+      const unsubscribe = onSnapshotFirestore(collection(db, "agendamentos"), (snapshot) => {
+        const agendamentosPendentes = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(doc => doc.status === "pendente");
+
+        const agendamentoDoUsuario = agendamentosPendentes.find(doc => doc.email === userEmail);
+
+        if (agendamentoDoUsuario) {
+          const barbeiro = agendamentoDoUsuario.barbeiro;
+          const filaDoMesmoBarbeiro = agendamentosPendentes
+            .filter(doc => doc.barbeiro === barbeiro)
+            .sort((a, b) => {
+              const dataA = a.criadoEm.toDate();
+              const dataB = b.criadoEm.toDate();
+              return dataA - dataB;
+            });
+
+          const index = filaDoMesmoBarbeiro.findIndex(doc => doc.email === userEmail);
+          const nomesFila = filaDoMesmoBarbeiro
+            .slice(0, index) // apenas os que estão na frente do usuário
+            .map((doc, idx) => `${idx + 1}º - ${doc.nome}`);
+
+          const posicao = index + 1;
+
+          painelFila.innerHTML = `
+            <div id="painelInfoFila" style="background-color: #f5f5f5; color: #333; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; text-align: center;">
+              <h3 style="margin-bottom: 10px;">Agendamento Atualizado</h3>
+              <p style="font-size: 18px;">Você é o número <strong>${posicao}</strong> na fila do barbeiro <strong>${barbeiro}</strong>.</p>
+              <p style="margin-top: 5px;">Horário do agendamento: <strong>${agendamentoDoUsuario.criadoEm.toDate().toLocaleTimeString('pt-BR')}</strong></p>
+              ${nomesFila.length > 0 ? `
+                <p style="margin-top: 15px;">Pessoas na sua frente:</p>
+                <ul style="list-style: none; padding: 0;">${nomesFila.map(nome => `<li style="padding: 3px 0;">${nome}</li>`).join("")}</ul>
+              ` : ""}
+              <button onclick="location.reload()" style="margin-top: 15px; background-color: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                Atualizar Fila
+              </button>
+            </div>
+          `;
+        } else {
+          painelFila.innerHTML = `<p>Você não possui agendamento pendente no momento.</p>`;
+        }
+      });
+    }
+  });
 });
 
 // Ouve mensagens de desbloqueio vindas do painel admin

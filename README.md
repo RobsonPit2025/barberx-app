@@ -10,6 +10,7 @@ O **BarberX** é um aplicativo web desenvolvido para facilitar o gerenciamento d
 ✅ Login para clientes e administrador  
 ✅ Agendamento de cortes com fila virtual  
 ✅ Visualização da posição na fila para o cliente  
+✅ Atualização em tempo real da fila de espera conforme cortes são concluídos  
 ✅ Painel administrativo exclusivo para barbeiros  
 ✅ Separação dos agendamentos por barbeiro (Yuri e Pablo)  
 ✅ Funcionalidade "Corte Concluído" para remover cliente da fila  
@@ -59,6 +60,7 @@ barberx-app/
 - Upload de imagem pelo painel só será possível após ativação do **Firebase Storage (Blaze Plan)**.
 - A fila de agendamento é controlada por regras internas no código.
 - A autenticação diferencia clientes e administradores por e-mail e senha.
+- A posição do cliente na fila é atualizada dinamicamente sempre que um corte é concluído no painel admin.
 
 ---
 

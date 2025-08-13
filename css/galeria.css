@@ -141,4 +141,9 @@ body {
     height: 36px;
     font-size: 18px;
   }
+
+  body {
+    background: url('../img/fundo-galeria.png') no-repeat center center fixed;
+    background-size: cover;
+  }
 }
