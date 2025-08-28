@@ -76,8 +76,7 @@ async function ensureSettingsDoc(){
 }
 
 if (toggleBookingsEl || statusPillEl) {
-  // Garante que o doc exista
-  ensureSettingsDoc().catch(console.error);
+  // ensureSettingsDoc será chamado somente quando um ADMIN estiver logado (veja onAuthStateChanged abaixo)
 
   // Escuta mudanças em tempo real no status
   onSnapshot(settingsRef, (snap) => {
@@ -158,40 +157,6 @@ function renderAgendamento(dados, container, id) {
 const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "in", ["Yuri", "Yure"]));
 const qPablo = query(collection(db, "agendamentos"), where("barbeiro", "==", "Pablo"));
 
-onSnapshot(qYuri, (snapshot) => {
-  containerYuri.innerHTML = "";
-  const docsOrdenados = snapshot.docs.sort((a, b) => {
-    const t1 = a.data().criadoEm?.seconds || 0;
-    const t2 = b.data().criadoEm?.seconds || 0;
-    return t1 - t2;
-  });
-  docsOrdenados.forEach((docSnap, index) => {
-    const data = docSnap.data();
-    const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
-    const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
-    data.posicao = index + 1;
-    data.horarioFormatado = horarioFormatado;
-    renderAgendamento(data, containerYuri, docSnap.id);
-  });
-});
-
-onSnapshot(qPablo, (snapshot) => {
-  containerPablo.innerHTML = "";
-  const docsOrdenados = snapshot.docs.sort((a, b) => {
-    const t1 = a.data().criadoEm?.seconds || 0;
-    const t2 = b.data().criadoEm?.seconds || 0;
-    return t1 - t2;
-  });
-  docsOrdenados.forEach((docSnap, index) => {
-    const data = docSnap.data();
-    const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
-    const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
-    data.posicao = index + 1;
-    data.horarioFormatado = horarioFormatado;
-    renderAgendamento(data, containerPablo, docSnap.id);
-  });
-});
-
 // Gerar relatório mensal
 function gerarRelatorio(snapshot) {
   const resumo = {};
@@ -227,7 +192,75 @@ function gerarRelatorio(snapshot) {
   });
 }
 
-onSnapshot(collection(db, "relatorios"), gerarRelatorio);
+// ===== Assinaturas condicionais após autenticação =====
+let unsubscribeYuri = null;
+let unsubscribePablo = null;
+let unsubscribeRelatorios = null;
+
+onAuthStateChanged(auth, (user) => {
+  // Cancela assinaturas anteriores
+  if (unsubscribeYuri) { try { unsubscribeYuri(); } catch(e) {} unsubscribeYuri = null; }
+  if (unsubscribePablo) { try { unsubscribePablo(); } catch(e) {} unsubscribePablo = null; }
+  if (unsubscribeRelatorios) { try { unsubscribeRelatorios(); } catch(e) {} unsubscribeRelatorios = null; }
+
+  const email = (user?.email || "").toLowerCase();
+  const isAdminUser = ADMINS.includes(email);
+
+  if (!user) {
+    // Sem login, não assina nada que exija auth; opcionalmente redirecionar
+    // window.location.href = "index.html";
+    // Limpa UI de relatório
+    const tbody = document.querySelector("#tabelaRelatorio tbody");
+    if (tbody) tbody.innerHTML = "";
+    return;
+  }
+
+  // Usuário logado pode ler agendamentos (rules exigem request.auth != null)
+  unsubscribeYuri = onSnapshot(qYuri, (snapshot) => {
+    containerYuri.innerHTML = "";
+    const docsOrdenados = snapshot.docs.sort((a, b) => {
+      const t1 = a.data().criadoEm?.seconds || 0;
+      const t2 = b.data().criadoEm?.seconds || 0;
+      return t1 - t2;
+    });
+    docsOrdenados.forEach((docSnap, index) => {
+      const data = docSnap.data();
+      const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+      const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+      data.posicao = index + 1;
+      data.horarioFormatado = horarioFormatado;
+      renderAgendamento(data, containerYuri, docSnap.id);
+    });
+  });
+
+  unsubscribePablo = onSnapshot(qPablo, (snapshot) => {
+    containerPablo.innerHTML = "";
+    const docsOrdenados = snapshot.docs.sort((a, b) => {
+      const t1 = a.data().criadoEm?.seconds || 0;
+      const t2 = b.data().criadoEm?.seconds || 0;
+      return t1 - t2;
+    });
+    docsOrdenados.forEach((docSnap, index) => {
+      const data = docSnap.data();
+      const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+      const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+      data.posicao = index + 1;
+      data.horarioFormatado = horarioFormatado;
+      renderAgendamento(data, containerPablo, docSnap.id);
+    });
+  });
+
+  // Somente ADMIN assina relatórios e garante criação do settings/app se necessário
+  if (isAdminUser) {
+    // garante criação do doc settings/app somente quando admin logado
+    ensureSettingsDoc().catch(console.error);
+    unsubscribeRelatorios = onSnapshot(collection(db, "relatorios"), gerarRelatorio);
+  } else {
+    const tbody = document.querySelector("#tabelaRelatorio tbody");
+    if (tbody) tbody.innerHTML = "";
+  }
+});
+// ===== FIM das assinaturas condicionais =====
 
 async function enviarImagem() {
   const arquivo = document.getElementById("imagemCorte").files[0];
