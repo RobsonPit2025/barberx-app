@@ -1,7 +1,7 @@
 // Importar Firebase (em agendamento.html você precisa usar type="module" OU importar os scripts por CDN separadamente)
 // Firebase SDKs
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { onSnapshot as onSnapshotFirestore, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -25,11 +25,25 @@ if (!getApps().length) {
 const db = getFirestore(app);
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 const auth = getAuth();
+const settingsRef = doc(db, "settings", "app");
 
 window.addEventListener("DOMContentLoaded", function () {
   const celularInput = document.getElementById("agendamentoCelular");
   const form = document.getElementById("formAgendamento");
   const painel = document.getElementById("painelFila");
+
+  const banner = document.getElementById("closedBanner");
+  function applyBookingOpen(open){
+    if (!form) return;
+    form.querySelectorAll("input,select,textarea,button").forEach(el => el.disabled = !open);
+    if (banner) banner.style.display = open ? "none" : "block";
+  }
+
+  onSnapshot(settingsRef, (snap) => {
+    const data = snap.data();
+    const isOpen = data == null ? true : !!data.bookingsOpen;
+    applyBookingOpen(isOpen);
+  });
 
   if (celularInput) {
     celularInput.addEventListener("input", function () {
@@ -52,6 +66,13 @@ window.addEventListener("DOMContentLoaded", function () {
   if (form && painel) {
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
+
+      // Bloqueio por configuração global (Aberto/Fechado)
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists() && settingsSnap.data().bookingsOpen === false) {
+        alert("Agendamentos estão fechados no momento. Aguardem o Barbeiro abrir!.");
+        return;
+      }
 
       const nome = document.getElementById("nome").value.trim();
       const celular = celularInput?.value.trim();

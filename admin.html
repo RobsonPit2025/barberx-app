@@ -4,14 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin Cruz_Styllos</title>
+</head>
   <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    .toggle { display:inline-flex; align-items:center; gap:.5rem; font-weight:600; }
+    .status-pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.85rem; margin-left:.5rem; }
+    .status-pill.open { background:#e6ffed; border:1px solid #34c759; color:#245c2a; }
+    .status-pill.closed { background:#ffecec; border:1px solid #ff3b30; color:#7d1d1a; }
+    .sidebar .system-status { margin-top:.75rem; padding:.5rem; border-top:1px solid #e0e0e0; }
+    .sidebar .hint { display:block; font-size:.75rem; color:#666; margin-top:.25rem; }
+  </style>
 </head>
 <body>
   <div class="sidebar">
   <h2>Admin</h2>
+</head>
   <button onclick="mostrarSecao('inicio')">Fila do Dia</button>
   <button onclick="mostrarSecao('relatorio')">Relatório</button>
   <button onclick="mostrarSecao('imagens')">Adicionar Imagens</button>
+  <div class="system-status">
+    <label class="toggle" title="Abrir/fechar agendamentos">
+      <input type="checkbox" id="toggleBookings" />
+      <span id="toggleLabel">Agendamentos ABERTOS</span>
+    </label>
+    <small class="hint">Use para abrir/fechar os agendamentos</small>
+  </div>
   <button id="logout2">Sair</button>
 </div>
 
@@ -19,7 +36,10 @@
 
     <!-- Frase motivacional -->
     <section id="inicio" class="painel">
-      <h1>Fila de Agendamentos de Hoje</h1>
+      <h1>
+        Fila de Agendamentos de Hoje
+        <span id="statusPill" class="status-pill open">Aberto</span>
+      </h1>
       <p id="fraseMotivacional" class="motivacional"></p>
 
       <div class="fila">

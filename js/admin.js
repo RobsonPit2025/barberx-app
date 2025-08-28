@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 function mostrarSecao(id) {
@@ -30,6 +30,91 @@ const firebaseConfig = {
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+const auth = getAuth(app);
+
+// --- Admins autorizados para abrir/fechar agendamentos ---
+const ADMINS = ["admin1@barberx.com", "admin2@barberx.com"];
+
+function isCurrentUserAdmin(){
+  const u = auth.currentUser;
+  return !!u && ADMINS.includes((u.email || "").toLowerCase());
+}
+
+// Desabilita o toggle até confirmar o papel do usuário
+onAuthStateChanged(auth, (user) => {
+  const isAdmin = !!user && ADMINS.includes((user.email || "").toLowerCase());
+  if (toggleBookingsEl) toggleBookingsEl.disabled = !isAdmin;
+  if (!isAdmin && toggleLabelEl) toggleLabelEl.title = "Apenas administradores podem alterar";
+});
+
+// ===== Controle Aberto/Fechado de Agendamentos =====
+const toggleBookingsEl = document.getElementById("toggleBookings");
+const toggleLabelEl = document.getElementById("toggleLabel");
+const statusPillEl = document.getElementById("statusPill");
+const settingsRef = doc(db, "settings", "app");
+
+function setBookingUI(isOpen){
+  if (toggleBookingsEl) toggleBookingsEl.checked = !!isOpen;
+  if (toggleLabelEl) toggleLabelEl.textContent = isOpen ? "Agendamentos ABERTOS" : "Agendamentos FECHADOS";
+  if (statusPillEl){
+    statusPillEl.textContent = isOpen ? "Aberto" : "Fechado";
+    statusPillEl.classList.toggle("open", !!isOpen);
+    statusPillEl.classList.toggle("closed", !isOpen);
+  }
+}
+
+async function ensureSettingsDoc(){
+  const snap = await getDoc(settingsRef);
+  if(!snap.exists()){
+    await setDoc(settingsRef, {
+      bookingsOpen: true,
+      lastChangedAt: serverTimestamp(),
+      lastChangedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "setup"
+    });
+  }
+}
+
+if (toggleBookingsEl || statusPillEl) {
+  // Garante que o doc exista
+  ensureSettingsDoc().catch(console.error);
+
+  // Escuta mudanças em tempo real no status
+  onSnapshot(settingsRef, (snap) => {
+    const data = snap.data();
+    const isOpen = data == null ? true : !!data.bookingsOpen;
+    setBookingUI(isOpen);
+  });
+
+  // Quando o admin alternar o checkbox, grava no Firestore
+  if (toggleBookingsEl){
+    toggleBookingsEl.addEventListener("change", async () => {
+      // Permite alteração apenas a administradores
+      if (!isCurrentUserAdmin()){
+        alert("Apenas administradores podem alterar este status.");
+        // Reverte o estado visual se o usuário não for admin
+        setBookingUI(!toggleBookingsEl.checked);
+        return;
+      }
+
+      const newState = !!toggleBookingsEl.checked;
+      try {
+        await updateDoc(settingsRef, {
+          bookingsOpen: newState,
+          lastChangedAt: serverTimestamp(),
+          lastChangedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "unknown"
+        });
+      } catch (err) {
+        console.error("Erro ao atualizar estado de agendamentos:", err);
+        // Reverte visualmente se falhar
+        setBookingUI(!newState);
+        alert("Não foi possível alterar o status. Verifique se sua conta é admin.");
+      }
+    });
+  }
+}
+// ===== FIM do Controle Aberto/Fechado =====
+
 // Mostrar agendamentos
 const containerYuri = document.getElementById("agendamentosYuri");
 const containerPablo = document.getElementById("agendamentosPablo");
