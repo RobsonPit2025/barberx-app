@@ -64,6 +64,18 @@ barberx-app/
 
 ---
 
+## 🆕 Novidades Recentes
+
+- Adicionado seletor de **Serviço** (ex.: Barba, Cabelo + Barba) com preços configuráveis.
+- Opção de pagamento antecipado via **PIX**:
+  - Cliente escolhe pagar **metade** ou **integral** do valor.
+  - Valor calculado automaticamente com base no serviço selecionado.
+- No painel do barbeiro:
+  - **Confirmar PIX** move o cliente para a fila somente após validação manual.
+  - Fila mostra apenas clientes com pagamento confirmado.
+  - Status diferenciados: `aguardando_pagamento`, `pendente` e `concluido`.
+- Relatórios agora registram serviço, valor pago e opção de pagamento (metade/integral).
+
 ## 👤 Desenvolvido por
 
 **Robson Fernandes dos Santos**  

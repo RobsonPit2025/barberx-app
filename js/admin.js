@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 function mostrarSecao(id) {
   console.log("Mostrando seção:", id);
@@ -68,7 +67,7 @@ async function ensureSettingsDoc(){
   const snap = await getDoc(settingsRef);
   if(!snap.exists()){
     await setDoc(settingsRef, {
-      bookingsOpen: true,
+      bookingsOpen: false,
       lastChangedAt: serverTimestamp(),
       lastChangedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : "setup"
     });
@@ -81,7 +80,7 @@ if (toggleBookingsEl || statusPillEl) {
   // Escuta mudanças em tempo real no status
   onSnapshot(settingsRef, (snap) => {
     const data = snap.data();
-    const isOpen = data == null ? true : !!data.bookingsOpen;
+    const isOpen = !!(data && data.bookingsOpen); // default FECHADO quando não houver doc
     setBookingUI(isOpen);
   });
 
@@ -129,20 +128,53 @@ function renderAgendamento(dados, container, id) {
     <p><strong>${posicaoTexto} na fila</strong></p>
     <p><strong>Nome:</strong> ${dados.nome}</p>
     <p><strong>Celular:</strong> ${dados.celular}</p>
-    <p><strong>Mensagem:</strong> ${dados.mensagem}</p>
+    <p><strong>Mensagem:</strong> ${dados.mensagem || '-'} </p>
     <p><strong>Hora:</strong> ${horaFormatada}</p>
-    <button class="btn-concluir" data-id="${id}">Corte Concluído</button>
+
+    <div class="pagamento">
+      <p>
+        <strong>Pagamento:</strong>
+        <span class="badge">PIX</span>
+        ${dados.amountOption ? `<span class="badge">${dados.amountOption === 'half' ? 'Metade' : 'Integral'}</span>` : ''}
+        <span class="badge ${dados.paymentStatus === 'paid' ? 'badge-paid' : 'badge-pending'}">
+          ${dados.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}
+        </span>
+        ${typeof dados.amount === 'number' ? `<span class="badge">R$ ${Number(dados.amount).toFixed(2)}</span>` : ''}
+      </p>
+      ${dados.pixKey ? `<p><small><strong>Chave:</strong> ${dados.pixKey}</small></p>` : ''}
+      ${dados.pixNote ? `<p><small><strong>Obs PIX:</strong> ${dados.pixNote}</small></p>` : ''}
+    </div>
+
+    <div class="acoes">
+      ${dados.paymentMethod === 'pix' && dados.paymentStatus !== 'paid' ? `<button class="btn-confirmar-pix" data-id="${id}">Confirmar PIX</button>` : ''}
+      <button class="btn-concluir" data-id="${id}">Corte Concluído</button>
+    </div>
   `;
   container.appendChild(div);
 
   // Botão de concluir
   div.querySelector(".btn-concluir").addEventListener("click", async () => {
     try {
-      // Registrar no Firestore (coleção relatorios)
-      const dataAtual = new Date();
+      // Atualiza status para concluido
+      await updateDoc(doc(db, "agendamentos", id), {
+        status: 'concluido',
+        concluidoAt: serverTimestamp(),
+        concluidoPor: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
+      });
+
+      // Registrar no Firestore (coleção relatorios) com mais detalhes
       await addDoc(collection(db, "relatorios"), {
-        barbeiro: dados.barbeiro,
-        data: dataAtual.toISOString(),
+        agendamentoId: id,
+        nome: dados.nome || '',
+        barbeiro: dados.barbeiro || '',
+        celular: dados.celular || '',
+        servico: dados.servico || '',
+        paymentMethod: dados.paymentMethod || 'pix',
+        paymentStatus: dados.paymentStatus || 'pending',
+        amountOption: dados.amountOption || null,
+        amount: typeof dados.amount === 'number' ? dados.amount : null,
+        createdAt: serverTimestamp(),
+        concluidoPor: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
       });
 
       // Remover da fila de agendamentos
@@ -152,6 +184,26 @@ function renderAgendamento(dados, container, id) {
       console.error("Erro ao concluir corte:", error);
     }
   });
+
+  // Botão Confirmar PIX (se existir)
+  const btnPix = div.querySelector('.btn-confirmar-pix');
+  if (btnPix) {
+    btnPix.addEventListener('click', async () => {
+      if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
+      try {
+        await updateDoc(doc(db, 'agendamentos', id), {
+          paymentStatus: 'paid',
+          paidAt: serverTimestamp(),
+          paidBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin',
+          status: 'pendente' // agora entra na fila
+        });
+        alert('PIX confirmado. Cliente entrou na fila.');
+      } catch (e) {
+        console.error('Erro ao confirmar PIX:', e);
+        alert('Não foi possível confirmar o PIX agora.');
+      }
+    });
+  }
 }
 
 const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "in", ["Yuri", "Yure"]));
@@ -218,16 +270,40 @@ onAuthStateChanged(auth, (user) => {
   // Usuário logado pode ler agendamentos (rules exigem request.auth != null)
   unsubscribeYuri = onSnapshot(qYuri, (snapshot) => {
     containerYuri.innerHTML = "";
-    const docsOrdenados = snapshot.docs.sort((a, b) => {
+
+    // separa por status
+    const pendentes = [];
+    const aguardando = [];
+    snapshot.docs.forEach(docSnap => {
+      const d = docSnap.data();
+      if (d.status === 'pendente') pendentes.push(docSnap);
+      else aguardando.push(docSnap);
+    });
+
+    // ordena por criadoEm e renderiza pendentes com posição
+    pendentes.sort((a, b) => {
       const t1 = a.data().criadoEm?.seconds || 0;
       const t2 = b.data().criadoEm?.seconds || 0;
       return t1 - t2;
-    });
-    docsOrdenados.forEach((docSnap, index) => {
+    }).forEach((docSnap, index) => {
       const data = docSnap.data();
       const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
       const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
-      data.posicao = index + 1;
+      data.posicao = index + 1; // só pendentes entram na fila
+      data.horarioFormatado = horarioFormatado;
+      renderAgendamento(data, containerYuri, docSnap.id);
+    });
+
+    // depois renderiza aguardando_pagamento SEM posição
+    aguardando.sort((a, b) => {
+      const t1 = a.data().criadoEm?.seconds || 0;
+      const t2 = b.data().criadoEm?.seconds || 0;
+      return t1 - t2;
+    }).forEach((docSnap) => {
+      const data = docSnap.data();
+      const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+      const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+      data.posicao = null; // não exibe número na fila
       data.horarioFormatado = horarioFormatado;
       renderAgendamento(data, containerYuri, docSnap.id);
     });
@@ -235,16 +311,40 @@ onAuthStateChanged(auth, (user) => {
 
   unsubscribePablo = onSnapshot(qPablo, (snapshot) => {
     containerPablo.innerHTML = "";
-    const docsOrdenados = snapshot.docs.sort((a, b) => {
+
+    // separa por status
+    const pendentes = [];
+    const aguardando = [];
+    snapshot.docs.forEach(docSnap => {
+      const d = docSnap.data();
+      if (d.status === 'pendente') pendentes.push(docSnap);
+      else aguardando.push(docSnap);
+    });
+
+    // ordena por criadoEm e renderiza pendentes com posição
+    pendentes.sort((a, b) => {
       const t1 = a.data().criadoEm?.seconds || 0;
       const t2 = b.data().criadoEm?.seconds || 0;
       return t1 - t2;
-    });
-    docsOrdenados.forEach((docSnap, index) => {
+    }).forEach((docSnap, index) => {
       const data = docSnap.data();
       const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
       const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
-      data.posicao = index + 1;
+      data.posicao = index + 1; // só pendentes entram na fila
+      data.horarioFormatado = horarioFormatado;
+      renderAgendamento(data, containerPablo, docSnap.id);
+    });
+
+    // depois renderiza aguardando_pagamento SEM posição
+    aguardando.sort((a, b) => {
+      const t1 = a.data().criadoEm?.seconds || 0;
+      const t2 = b.data().criadoEm?.seconds || 0;
+      return t1 - t2;
+    }).forEach((docSnap) => {
+      const data = docSnap.data();
+      const horarioCompleto = new Date(data.criadoEm?.seconds * 1000 || Date.now());
+      const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
+      data.posicao = null; // não exibe número na fila
       data.horarioFormatado = horarioFormatado;
       renderAgendamento(data, containerPablo, docSnap.id);
     });
@@ -261,45 +361,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 // ===== FIM das assinaturas condicionais =====
-
-async function enviarImagem() {
-  const arquivo = document.getElementById("imagemCorte").files[0];
-  const barbeiro = document.getElementById("barbeiroSelect").value;
-  const mensagemDiv = document.getElementById("mensagemImagem");
-
-  if (!arquivo || !barbeiro) {
-    mensagemDiv.textContent = "Selecione um barbeiro e uma imagem.";
-    return;
-  }
-
-  try {
-    const nomeUnico = `${barbeiro}_${Date.now()}.${arquivo.name.split('.').pop()}`;
-    const storageRef = ref(getStorage(), `portfolio/${barbeiro}/${nomeUnico}`);
-
-    await uploadBytes(storageRef, arquivo);
-    const url = await getDownloadURL(storageRef);
-
-    await addDoc(collection(db, "portfolio"), {
-      barbeiro,
-      url,
-      criadoEm: new Date()
-    });
-
-    mensagemDiv.textContent = "Imagem enviada com sucesso!";
-    document.getElementById("imagemCorte").value = "";
-  } catch (error) {
-    console.error("Erro ao enviar imagem:", error);
-    mensagemDiv.textContent = "Erro ao enviar imagem.";
-  }
-}
-window.enviarImagem = enviarImagem;
-
-document.addEventListener("DOMContentLoaded", () => {
-  const btnEnviarImagem = document.getElementById("btnEnviarImagem");
-  if (btnEnviarImagem) {
-    btnEnviarImagem.addEventListener("click", enviarImagem);
-  }
-});
 
 // Função para sair
 const logoutBtn = document.getElementById("logout2");

@@ -20,13 +20,41 @@
         <option value="Yure">Yure</option>
         <option value="Pablo">Pablo</option>
       </select>
+
+      <!-- Horário (35 em 35 min) -->
+      <select id="horario" required>
+        <option value="">Escolha o horário</option>
+      </select>
+
+      <!-- Serviço -->
+      <select id="servico" required>
+        <option value="">Escolha o serviço</option>
+        <option value="barba">Barba</option>
+        <option value="cabelo_barba">Cabelo + Barba</option>
+      </select>
+
+      <!-- Pagamento -->
+      <fieldset class="pagamento" id="pagamentoBox" disabled>
+        <legend>Pagamento antecipado (PIX)</legend>
+        <label><input type="radio" name="payAmount" value="half" checked> Metade agora</label>
+        <label><input type="radio" name="payAmount" value="full"> Valor integral</label>
+        <p style="margin:.5rem 0 0">Valor a pagar agora: <strong>R$ <span id="valorCalculado">--</span></strong></p>
+      </fieldset>
+
+      <div id="pixBox">
+        <p>Chave PIX: <strong id="pixKey">71993112261</strong> <button type="button" id="copyPix">Copiar</button></p>
+        <p style="margin:.25rem 0 0"><strong>Não aceitamos fiado.</strong></p>
+        <label>Comprovante/observação do PIX (apenas texto, opcional):
+          <input type="text" id="pixNote" placeholder="Ex.: banco/txid/observação">
+        </label>
+      </div>
+
+
       <textarea id="mensagem" placeholder="Mensagem (máx. 200 caracteres)" maxlength="200"></textarea>
       <button type="submit">Marcar Corte</button>
     </form>
     <div id="painelFila"></div>
   </div>
-</div>
-  <script type="module" src="js/agendamento.js"></script>
   <script>
     const celularInput = document.getElementById("agendamentoCelular");
 
@@ -46,5 +74,6 @@
       celularInput.value = valor;
     });
   </script>
+  <script type="module" src="js/agendamento.js"></script>
 </body>
 </html>
