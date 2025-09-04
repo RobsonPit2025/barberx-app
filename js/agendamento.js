@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // ===== PIX por barbeiro =====
   const PIX_BY_BARBER = {
     Yuri: "71981218562",
-    Pablo: "06126840593"
+    Pablo: "71981879989"
   };
   function normalizeBarberId(v){
     const s = (v || '').toString().toLowerCase();
