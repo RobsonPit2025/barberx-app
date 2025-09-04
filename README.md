@@ -66,15 +66,21 @@ barberx-app/
 
 ## 🆕 Novidades Recentes
 
-- Adicionado seletor de **Serviço** (ex.: Barba, Cabelo + Barba) com preços configuráveis.
-- Opção de pagamento antecipado via **PIX**:
+- Grade de horários dinâmica: acompanha o horário atual do dia e esconde horários já passados.
+- Bloqueio de múltiplos agendamentos por cliente até o corte ser concluído.
+- Novo fluxo de pagamentos antecipados via **PIX**:
   - Cliente escolhe pagar **metade** ou **integral** do valor.
-  - Valor calculado automaticamente com base no serviço selecionado.
-- No painel do barbeiro:
-  - **Confirmar PIX** move o cliente para a fila somente após validação manual.
-  - Fila mostra apenas clientes com pagamento confirmado.
-  - Status diferenciados: `aguardando_pagamento`, `pendente` e `concluido`.
-- Relatórios agora registram serviço, valor pago e opção de pagamento (metade/integral).
+  - Valor calculado automaticamente com base no serviço escolhido.
+  - Mensagens personalizadas após confirmação:
+    - "Você se encontra (na fila). Falta pagar (metade) pessoalmente!"
+    - "Você se encontra (na fila). Obrigado pelo pagamento integral, você está fazendo o barbeiro muito feliz 😁."
+- Painel do barbeiro atualizado com novas ações:
+  - **Confirmar PIX**: valida manualmente pagamentos.
+  - **Não comprovado**: libera o horário caso o cliente não pague.
+  - **Remover agendamento**: exclui agendamento de clientes que não compareceram.
+- Todos os botões do painel padronizados (mesma cor/tamanho do "Concluir Corte").
+- Painel agora exibe o horário marcado pelo cliente além do horário de criação.
+- Relatórios registram serviço, valor, forma de pagamento e ações de remoção.
 
 ## 👤 Desenvolvido por
 
