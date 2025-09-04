@@ -1,4 +1,5 @@
 import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====
 document.addEventListener('DOMContentLoaded', function(){
@@ -44,6 +45,74 @@ document.addEventListener('DOMContentLoaded', function(){
   const pixKeyEl = document.getElementById('pixKey');
   const pixBox = document.getElementById('pixBox');
 
+  // ===== Fila do cliente + bloqueio global =====
+  const formAg = document.getElementById('formAgendamento') || document.querySelector('form');
+  function setFormDisabled(disabled) {
+    if (!formAg) return;
+    formAg.querySelectorAll('input, select, textarea, button[type="submit"]').forEach(el => {
+      el.disabled = !!disabled;
+    });
+  }
+
+  // Caixa “Minha Fila” (cria se não existir) — mostrada quando o cliente já tem agendamento ativo
+  let filaBox = document.getElementById('minhaFilaBox');
+  if (!filaBox && formAg?.parentNode) {
+    filaBox = document.createElement('div');
+    filaBox.id = 'minhaFilaBox';
+    filaBox.style.margin = '12px 0';
+    filaBox.style.padding = '10px';
+    filaBox.style.border = '1px solid #e5e7eb';
+    filaBox.style.borderRadius = '8px';
+    filaBox.style.display = 'none';
+    formAg.parentNode.insertBefore(filaBox, formAg);
+  }
+  function showMinhaFila(docData) {
+    if (!filaBox) return;
+    const { barbeiro, horario, status, amountOption } = docData || {};
+
+    let rot = '';
+    if (status === 'pendente') {
+      if (amountOption === 'half') {
+        rot = 'Você se encontra (na fila). Falta pagar (metade) pessoalmente!';
+      } else {
+        rot = 'Você se encontra (na fila). Obrigado pelo pagamento integral, você está fazendo o barbeiro muito feliz 😁.';
+      }
+    } else {
+      rot = 'Aguardando confirmação do pagamento PIX';
+    }
+
+    filaBox.innerHTML = `
+      <strong>Seu agendamento</strong><br>
+      Barbeiro: ${barbeiro || '-'}<br>
+      Horário: ${horario || '-'}<br>
+      Status: ${rot}<br>
+      <small>Calma aí 😎 Você já tem um corte agendado. Assim que o barbeiro finalizar, você pode marcar outro.</small>
+    `;
+    filaBox.style.display = 'block';
+  }
+  function hideMinhaFila() { if (filaBox) filaBox.style.display = 'none'; }
+
+  // Mensagem de fechado global
+  let statusGlobalMsg = document.getElementById('statusGlobalMsg');
+  if (!statusGlobalMsg && formAg?.parentNode) {
+    statusGlobalMsg = document.createElement('div');
+    statusGlobalMsg.id = 'statusGlobalMsg';
+    statusGlobalMsg.style.margin = '12px 0';
+    statusGlobalMsg.style.padding = '10px';
+    statusGlobalMsg.style.border = '1px solid #fca5a5';
+    statusGlobalMsg.style.background = '#fff1f2';
+    statusGlobalMsg.style.color = '#7f1d1d';
+    statusGlobalMsg.style.borderRadius = '8px';
+    statusGlobalMsg.style.display = 'none';
+    formAg.parentNode.insertBefore(statusGlobalMsg, formAg);
+  }
+
+  let blockedByQueue = false;
+  let blockedByGlobal = false;
+  function applyDisableState() {
+    setFormDisabled(blockedByQueue || blockedByGlobal);
+  }
+
   // ===== Helpers de data (YYYY-MM-DD no fuso local) =====
   function todayISO() {
     const d = new Date();
@@ -62,6 +131,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  };
+
+  // Retorna os minutos atuais do dia (ex: 13:25 => 805)
+  const nowMinutes = () => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
   };
 
   // ===== Grade de horários por barbeiro (lida com settings/schedule_*) =====
@@ -157,15 +232,37 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const step = Number(sched.slotStep || 35);
     const slots = generateSlots(sched.slotStart, sched.slotEnd, step);
-    for (const time of slots) {
-      const opt = document.createElement('option');
-      opt.value = time;
-      opt.textContent = time;
-      selectHorario.appendChild(opt);
-    }
 
-    // Bloqueia horários já ocupados hoje para este barbeiro
-    await disableTakenSlots(barberId, todayISO());
+    // Filtra horários que já passaram no dia atual
+    const nowM = nowMinutes();
+    const futuros = slots.filter(t => toMinutes(t) >= nowM);
+
+    if (futuros.length === 0) {
+      // Sem horários restantes hoje
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Sem horários disponíveis hoje';
+      opt.disabled = true;
+      selectHorario.appendChild(opt);
+    } else {
+      for (const time of futuros) {
+        const opt = document.createElement('option');
+        opt.value = time;
+        opt.textContent = time;
+        selectHorario.appendChild(opt);
+      }
+
+      // Bloqueia horários já ocupados hoje para este barbeiro
+      await disableTakenSlots(barberId, todayISO());
+    }
+    // // Versão antiga (removida):
+    // for (const time of slots) {
+    //   const opt = document.createElement('option');
+    //   opt.value = time;
+    //   opt.textContent = time;
+    //   selectHorario.appendChild(opt);
+    // }
+    // await disableTakenSlots(barberId, todayISO());
   }
 
   // ===== Aplica chave PIX e habilita pagamento somente após escolher barbeiro =====
@@ -228,6 +325,80 @@ document.addEventListener('DOMContentLoaded', function(){
     if (pixBox) pixBox.style.display = 'none';
   }
 
+  // ===== Fechado/aberto GLOBAL (settings/app.bookingsOpen) =====
+  function applyGlobalOpen(bookingsOpen) {
+    blockedByGlobal = !bookingsOpen;
+
+    // Página pode não ter o aviso nem o form (ex.: index.html)
+    if (!statusGlobalMsg) {
+      applyDisableState();
+      return;
+    }
+
+    if (!bookingsOpen) {
+      statusGlobalMsg.textContent = 'Agendamentos fechados no momento. Aguarde o barbeiro abrir.';
+      statusGlobalMsg.style.display = 'block';
+    } else {
+      statusGlobalMsg.style.display = 'none';
+    }
+    applyDisableState();
+  }
+  onSnapshot(doc(getFirestore(), 'settings', 'app'), (snap) => {
+    const open = snap.exists() ? !!snap.data().bookingsOpen : true;
+    applyGlobalOpen(open);
+  }, (_e)=> applyGlobalOpen(true));
+
+  // ===== Minha Fila do cliente (bloqueia novo agendamento se houver ativo) =====
+  let unsubscribeMinhaFila = null;
+  function watchMinhaFilaDoCliente() {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user || !formAg) return;
+    if (typeof unsubscribeMinhaFila === 'function') {
+      try { unsubscribeMinhaFila(); } catch(_) {}
+      unsubscribeMinhaFila = null;
+    }
+    const db = getFirestore();
+    const base = collection(db, 'agendamentos');
+
+    const qA = query(base, where('userId','==', user.uid), where('status','==','aguardando_pagamento'));
+    const qP = query(base, where('userId','==', user.uid), where('status','==','pendente'));
+
+    let ultimoDoc = null;
+    const applyQueue = (hasActive) => {
+      blockedByQueue = hasActive;
+      if (hasActive && ultimoDoc) showMinhaFila(ultimoDoc); else hideMinhaFila();
+      applyDisableState();
+    };
+
+    const unA = onSnapshot(qA, (snap) => {
+      const hasA = snap.size > 0;
+      if (hasA) ultimoDoc = snap.docs[0].data();
+      applyQueue(hasA || blockedByQueue);
+    });
+    const unP = onSnapshot(qP, (snap) => {
+      const hasP = snap.size > 0;
+      if (hasP) ultimoDoc = snap.docs[0].data();
+      applyQueue(hasP || blockedByQueue);
+    });
+
+    unsubscribeMinhaFila = () => { try { unA(); unP(); } catch(_) {} };
+  }
+
+  onAuthStateChanged(getAuth(), (user) => {
+    if (user && formAg) {
+      watchMinhaFilaDoCliente();
+    } else {
+      blockedByQueue = false;
+      hideMinhaFila();
+      applyDisableState();
+      if (typeof unsubscribeMinhaFila === 'function') {
+        try { unsubscribeMinhaFila(); } catch(_) {}
+        unsubscribeMinhaFila = null;
+      }
+    }
+  });
+
   // ===== Submit: salvar agendamento com pagamento antecipado (aguardando confirmação) =====
   const form = document.getElementById('formAgendamento');
   if (form) {
@@ -279,7 +450,9 @@ document.addEventListener('DOMContentLoaded', function(){
           totalPrice,                         // preço do serviço
           amount,                             // valor a pagar agora
           pixKey,
-          pixNote
+          pixNote,
+          userId: getAuth().currentUser?.uid || null,
+          userEmail: getAuth().currentUser?.email || null
         });
 
         // Feedback rápido

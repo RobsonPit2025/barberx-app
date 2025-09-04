@@ -153,11 +153,9 @@ table tr:hover {
 
 .btn-concluir {
   margin-top: 8px;
-  padding: 5px 10px;
   background-color: #d9534f;
   color: white;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -228,5 +226,58 @@ html, body {
 
   .queue {
     width: 100%;
+  }
+}
+/* === Ações nos cards da fila (admin) === */
+.linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Botões padrão das ações */
+.acoes button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Cores por ação (mantém .btn-concluir existente) */
+/* Unificado: mesmas cores de .btn-concluir */
+.btn-confirmar-pix,
+.btn-nao-comprovado,
+.btn-remover {
+  background-color: #d9534f; /* mesma cor do concluir */
+  color: white;
+}
+
+.btn-confirmar-pix:hover,
+.btn-nao-comprovado:hover,
+.btn-remover:hover {
+  background-color: #c9302c; /* mesma cor do concluir hover */
+}
+
+/* Estado desabilitado */
+.acoes button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsivo: ações em coluna no mobile */
+@media (max-width: 600px) {
+  .acoes { width: 100%; }
+  .acoes button {
+    flex: 1 1 140px;
   }
 }

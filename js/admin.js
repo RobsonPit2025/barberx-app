@@ -21,7 +21,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
   authDomain: "barbex-app.firebaseapp.com",
   projectId: "barbex-app",
-  storageBucket: "barbex-app.firebasestorage.app",
+  storageBucket: "barbex-app.appspot.com",
   messagingSenderId: "91864465722",
   appId: "1:91864465722:web:7a3365582f3ca63e19d003"
 };
@@ -129,7 +129,8 @@ function renderAgendamento(dados, container, id) {
     <p><strong>Nome:</strong> ${dados.nome}</p>
     <p><strong>Celular:</strong> ${dados.celular}</p>
     <p><strong>Mensagem:</strong> ${dados.mensagem || '-'} </p>
-    <p><strong>Hora:</strong> ${horaFormatada}</p>
+    <p><strong>Marcado para:</strong> ${dados.horario || '-'}${dados.dataDia ? ` — ${dados.dataDia}` : ''}</p>
+    <p><small>Criado às: ${horaFormatada}</small></p>
 
     <div class="pagamento">
       <p>
@@ -148,6 +149,8 @@ function renderAgendamento(dados, container, id) {
     <div class="acoes">
       ${dados.paymentMethod === 'pix' && dados.paymentStatus !== 'paid' ? `<button class="btn-confirmar-pix" data-id="${id}">Confirmar PIX</button>` : ''}
       <button class="btn-concluir" data-id="${id}">Corte Concluído</button>
+      ${dados.paymentStatus !== 'paid' ? `<button class="btn-nao-comprovado" data-id="${id}">Não comprovado</button>` : ''}
+      <button class="btn-remover" data-id="${id}">Remover</button>
     </div>
   `;
   container.appendChild(div);
@@ -184,6 +187,62 @@ function renderAgendamento(dados, container, id) {
       console.error("Erro ao concluir corte:", error);
     }
   });
+
+  // Botão Não comprovado (libera horário sem excluir o doc)
+  const btnNC = div.querySelector('.btn-nao-comprovado');
+  if (btnNC) {
+    btnNC.addEventListener('click', async () => {
+      if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
+      try {
+        await updateDoc(doc(db, 'agendamentos', id), {
+          status: 'nao_comprovado',
+          paymentStatus: 'failed',
+          updatedAt: serverTimestamp(),
+          updatedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
+        });
+        alert('Marcado como NÃO COMPROVADO. O horário foi liberado.');
+      } catch (e) {
+        console.error('Erro ao marcar não comprovado:', e);
+        alert('Não foi possível marcar como não comprovado agora.');
+      }
+    });
+  }
+
+  // Botão Remover agendamento (libera horário e remove o doc)
+  const btnRem = div.querySelector('.btn-remover');
+  if (btnRem) {
+    btnRem.addEventListener('click', async () => {
+      if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
+      if (!confirm('Remover este agendamento? Isso liberará o horário.')) return;
+      try {
+        const ref = doc(db, 'agendamentos', id);
+        // (Opcional) registrar no relatório antes de remover
+        try {
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
+            const d = snap.data();
+            await addDoc(collection(db, 'relatorios'), {
+              tipo: 'removido',
+              motivo: 'no_show',
+              agendamentoId: id,
+              barbeiro: d.barbeiro || '',
+              dataDia: d.dataDia || '',
+              horario: d.horario || '',
+              cliente: d.nome || '',
+              createdAt: serverTimestamp(),
+              by: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
+            });
+          }
+        } catch (_) { /* relatório é opcional */ }
+
+        await deleteDoc(ref);
+        alert('Agendamento removido. O horário foi liberado.');
+      } catch (e) {
+        console.error('Erro ao remover agendamento:', e);
+        alert('Não foi possível remover agora.');
+      }
+    });
+  }
 
   // Botão Confirmar PIX (se existir)
   const btnPix = div.querySelector('.btn-confirmar-pix');
