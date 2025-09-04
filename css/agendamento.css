@@ -15,7 +15,7 @@ body {
   max-width: 520px;              /* card mais largo em telas médias */
   margin: 0 auto;                 /* centraliza */
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  text-align: center;               /* alinha labels/inputs à esquerda */
+  text-align: center;               /* centraliza labels/inputs */
 }
 
 /* Espaçamento consistente entre campos */
@@ -64,8 +64,16 @@ button:hover { background-color: #374151; }
 }
 #pagamentoBox label {
   display: block;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin: 6px 0;
   text-align: center;
+}
+#pagamentoBox input[type="radio"] {
+  margin: 0;
+  vertical-align: middle;
+  transform: translateY(0);
 }
 #pagamentoBox p,
 #pagamentoBox .pix-key,
@@ -77,20 +85,8 @@ button:hover { background-color: #374151; }
 
 /* Chave PIX e botão copiar */
 .pix-key { display: block; text-align: center; font-weight: 700; margin: 8px 0; word-break: break-all; }
-.btn-copy { width: auto; display: inline-block; margin: 0 auto; }
+.btn-copy { width: 100%; display: block; margin: 0 auto; }
 
-button {
-  padding: 10px;
-  width: 100%;
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-button:hover {
-  background-color: #555;
-}
 #painelFila {
   margin-top: 20px;
   text-align: left;
