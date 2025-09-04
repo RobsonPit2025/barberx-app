@@ -1,29 +1,84 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background-color: #f1f1f1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  background: url('../img/bg-agendamento.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #000;
+  padding: 24px 16px;          /* respiro nas bordas */
+  min-height: 100svh;          /* evita "comer" a tela no mobile */
 }
 .agendamento-container {
-  background-color: white;
-  padding: 30px;
-  border-radius: 12px;
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 14px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  text-align: center;
+  max-width: 520px;              /* card mais largo em telas médias */
+  margin: 0 auto;                 /* centraliza */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  text-align: center;               /* alinha labels/inputs à esquerda */
 }
+
+/* Espaçamento consistente entre campos */
+#formAgendamento .field,
+#formAgendamento .group {
+  margin-bottom: 12px;
+}
+
+/* Inputs full width já existem, só garantir fonte amigável no iPhone */
 input, select, textarea {
   display: block;
   width: 100%;
-  margin-bottom: 15px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 16px; /* evita zoom no iOS */
+  text-align: center;
 }
+
+button {
+  padding: 12px;
+  width: 100%;
+  background-color: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+button:hover { background-color: #374151; }
+
+/* Fieldset de pagamento */
+#pagamentoBox {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+#pagamentoBox legend {
+  font-weight: 700;
+  padding: 0 0 6px;
+}
+#pagamentoBox label {
+  display: block;
+  margin: 6px 0;
+  text-align: center;
+}
+#pagamentoBox p,
+#pagamentoBox .pix-key,
+#pagamentoBox .btn-copy,
+#pagamentoBox small,
+#pagamentoBox input {
+  margin: 4px 0;
+}
+
+/* Chave PIX e botão copiar */
+.pix-key { display: block; text-align: center; font-weight: 700; margin: 8px 0; word-break: break-all; }
+.btn-copy { width: auto; display: inline-block; margin: 0 auto; }
+
 button {
   padding: 10px;
   width: 100%;
@@ -41,36 +96,17 @@ button:hover {
   text-align: left;
 }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: url('../img/bg-agendamento.jpg') no-repeat center center fixed;
-  background-size: cover;
-  color: #000; /* Ajuste conforme necessário */
-}
-
 @media (max-width: 600px) {
   .agendamento-container {
-    padding: 20px;
-    margin: 10px;
-    width: 90%;
+    padding: 14px;
+    margin: 8px;
+    width: auto;
     box-sizing: border-box;
-    opacity: 90%;
+    opacity: 0.96;
   }
 
-  input, select, textarea, button {
-    font-size: 1rem;
-    padding: 12px;
-  }
-
-  #painelFila {
-    font-size: 0.9rem;
-  }
-  
-  body {
-    background: url('../img/fundo-agendamento.png') no-repeat center center fixed;
-    background-size: cover;
-  }
+  input, select, textarea, button { font-size: 16px; }
+  #painelFila { font-size: 0.95rem; }
 }
 
 html, body {

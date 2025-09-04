@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 function mostrarSecao(id) {
@@ -361,6 +361,181 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 // ===== FIM das assinaturas condicionais =====
+
+// ===== Configuração de horários (Admin) =====
+const cfgBarbeiro = document.getElementById('cfgBarbeiro');
+const cfgStart    = document.getElementById('cfgStart');
+const cfgEnd      = document.getElementById('cfgEnd');
+const cfgStep     = document.getElementById('cfgStep');
+const cfgOpen     = document.getElementById('cfgOpen');
+const btnSalvar   = document.getElementById('btnSalvarHorario');
+const cfgDate    = document.getElementById('cfgDate');
+
+function normalizeBarberId(v){
+  if(!v) return '';
+  const s = String(v).toLowerCase();
+  if (s.includes('yuri') || s.includes('yure')) return 'Yure';
+  if (s.includes('pablo')) return 'Pablo';
+  return v;
+}
+function todayISO(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function selectedDateISO(){
+  if (!cfgDate || !cfgDate.value) return todayISO();
+  return cfgDate.value;
+}
+function toMinutes(hhmm){
+  const [h,m]=(hhmm||'00:00').split(':').map(Number);
+  return h*60+m;
+}
+function toHHMM(mins){
+  const h=Math.floor(mins/60), m=mins%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+function generateSlots(start,end,step){
+  const out = [];
+  const inc = Number(step || 35);
+  if (!inc || inc <= 0) return out;
+
+  const s = toMinutes(start);
+  const e = toMinutes(end);
+  const MIN_IN_DAY = 24 * 60; // 1440
+
+  if (s <= e) {
+    // janela no mesmo dia
+    for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
+  } else {
+    // janela atravessa a meia-noite (ex.: 21:00 -> 03:00)
+    for (let t = s; t < MIN_IN_DAY; t += inc) out.push(toHHMM(t));
+    for (let t = 0; t <= e; t += inc) out.push(toHHMM(t));
+  }
+  return out;
+}
+
+async function loadScheduleToUI(barberId) {
+  if (!cfgStart || !cfgEnd || !cfgStep || !cfgOpen) return;
+  const id = (barberId === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+  try {
+    const snap = await getDoc(doc(db, 'settings', id));
+    const data = snap.exists() ? snap.data() : { open:true, slotStart:'09:30', slotEnd:'19:00', slotStep:35 };
+    cfgStart.value = data.slotStart || '09:30';
+    cfgEnd.value   = data.slotEnd   || '19:00';
+    cfgStep.value  = String(data.slotStep || 35);
+    cfgOpen.value  = String(Boolean(data.open));
+  } catch (e) {
+    console.warn('Não foi possível carregar configuração de horário:', e);
+  }
+}
+
+async function renderSchedulePreview(){
+  const box = document.getElementById('cfgPreview');
+  if(!box) return;
+  const barber = normalizeBarberId(cfgBarbeiro?.value||'');
+  // carrega config atual exibida na UI
+  const open = (cfgOpen?.value === 'true');
+  const start = cfgStart?.value || '09:30';
+  const end   = cfgEnd?.value   || '19:00';
+  const step  = Number(cfgStep?.value || 35);
+
+  box.innerHTML = '';
+  if(!open){
+    box.innerHTML = '<div style="opacity:.7">(Fechado — nenhuma faixa liberada)</div>';
+    return;
+  }
+
+  const slots = generateSlots(start,end,step);
+
+  // busca horários ocupados hoje
+  const ocupados = new Set();
+  try{
+    const q1 = query(collection(db,'agendamentos'),
+      where('barbeiro','==', barber),
+      where('dataDia','==', selectedDateISO()),
+      where('status','in',['aguardando_pagamento','pendente'])
+    );
+    const snap = await getDocs(q1);
+    snap.forEach(ds=> ocupados.add(ds.data().horario));
+  }catch(_e){
+    // fallback sem 'in'
+    const estados=['aguardando_pagamento','pendente'];
+    for(const st of estados){
+      const q2 = query(collection(db,'agendamentos'),
+        where('barbeiro','==', barber),
+        where('dataDia','==', selectedDateISO()),
+        where('status','==', st)
+      );
+      const s2 = await getDocs(q2);
+      s2.forEach(ds=> ocupados.add(ds.data().horario));
+    }
+  }
+
+  // monta grade
+  for(const hh of slots){
+    const taken = ocupados.has(hh);
+    const item = document.createElement('div');
+    item.textContent = hh + (taken? ' (ocupado)':'');
+    item.style.padding='8px';
+    item.style.border='1px solid #e5e7eb';
+    item.style.borderRadius='8px';
+    item.style.textAlign='center';
+    if(taken){ item.style.opacity='.45'; item.style.background='#f3f4f6'; }
+    box.appendChild(item);
+  }
+}
+
+if (cfgBarbeiro) {
+  // carrega inicialmente
+  loadScheduleToUI(cfgBarbeiro.value);
+  renderSchedulePreview();
+  // ao trocar barbeiro
+  cfgBarbeiro.addEventListener('change', () => {
+    loadScheduleToUI(cfgBarbeiro.value);
+    renderSchedulePreview();
+  });
+  [cfgStart,cfgEnd,cfgStep,cfgOpen].forEach(el=>{
+    if(el) el.addEventListener('change', ()=> renderSchedulePreview());
+  });
+  if (cfgDate) {
+    if (!cfgDate.value) cfgDate.value = todayISO();
+    cfgDate.addEventListener('change', ()=> renderSchedulePreview());
+  }
+}
+
+if (btnSalvar) {
+  btnSalvar.addEventListener('click', async () => {
+    if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
+    // Validação mínima do passo (step)
+    const stepVal = Number(cfgStep?.value || 35);
+    if (!stepVal || stepVal <= 0) {
+      alert('Intervalo inválido. Use um valor maior que 0.');
+      return;
+    }
+    try {
+      const id = (cfgBarbeiro?.value === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+      await setDoc(doc(db, 'settings', id), {
+        open: cfgOpen?.value === 'true',
+        slotStart: cfgStart?.value || '09:30',
+        slotEnd:   cfgEnd?.value   || '19:00',
+        slotStep:  stepVal
+      }, { merge: true });
+      alert('Configuração de horários salva!');
+      renderSchedulePreview();
+    } catch (e) {
+      console.error('Erro ao salvar configuração de horário:', e);
+      alert('Não foi possível salvar agora.');
+    }
+  });
+}
+
+const btnPrev = document.getElementById('btnPreviewAtualizar');
+if(btnPrev){ btnPrev.addEventListener('click', ()=> renderSchedulePreview()); }
+// ===== FIM Configuração de horários (Admin) =====
 
 // Função para sair
 const logoutBtn = document.getElementById("logout2");

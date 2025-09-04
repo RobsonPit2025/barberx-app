@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="icon" href="img/favicon.ico" type="image/x-icon">
   <title>Agendamento - Cruz_Styllos</title>
   <link rel="stylesheet" href="css/agendamento.css" />
 </head>
@@ -29,8 +29,21 @@
       <!-- Serviço -->
       <select id="servico" required>
         <option value="">Escolha o serviço</option>
-        <option value="barba">Barba</option>
-        <option value="cabelo_barba">Cabelo + Barba</option>
+        <option value="corte_maquina">Corte máquina - R$20</option>
+        <option value="corte_navalhado">Corte navalhado - R$20</option>
+        <option value="corte_tesoura">Corte tesoura - R$25</option>
+        <option value="barba">Barba - R$10</option>
+        <option value="pe">Pé - R$10</option>
+        <option value="sobrancelha">Sobrancelha - R$10</option>
+        <option value="pigmentacao">Pigmentação - R$10</option>
+        <option value="promocao_corte_barba">Promoção: corte + barba - R$25</option>
+        <option value="promocao_corte_barba_pigmentacao">Promoção: corte + barba + pigmentação - R$30</option>
+        <option value="promocao_corte_pigmentacao">Promoção: corte + pigmentação - R$28</option>
+        <option value="nevou_com_corte">Nevou c/ corte - R$80</option>
+        <option value="nevou_sem_corte">Nevou s/ corte - R$60</option>
+        <option value="luzes_com_corte">Luzes c/ corte - R$60</option>
+        <option value="luzes_sem_corte">Luzes s/ corte - R$45</option>
+        <option value="reflexo_alinhado_com_corte">Reflexo alinhado c/ corte - R$70</option>
       </select>
 
       <!-- Pagamento -->
@@ -73,6 +86,25 @@
 
       celularInput.value = valor;
     });
+  </script>
+  <!-- Firebase init: precisa vir antes do agendamento.js -->
+  <script type="module">
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
+      authDomain: "barbex-app.firebaseapp.com",
+      projectId: "barbex-app",
+      storageBucket: "barbex-app.appspot.com",
+      messagingSenderId: "91864465722",
+      appId: "1:91864465722:web:7a3365582f3ca63e19d003"
+    };
+
+    if (getApps().length === 0) {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+    }
   </script>
   <script type="module" src="js/agendamento.js"></script>
 </body>

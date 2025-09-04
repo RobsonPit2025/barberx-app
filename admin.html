@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" href="img/favicon.ico" type="image/x-icon">
   <title>Admin Cruz_Styllos</title>
 </head>
   <link rel="stylesheet" href="css/admin.css" />
@@ -22,6 +23,7 @@
   <button onclick="mostrarSecao('inicio')">Fila do Dia</button>
   <button onclick="mostrarSecao('relatorio')">Relatório</button>
   <button onclick="mostrarSecao('imagens')">Adicionar Imagens</button>
+  <button onclick="mostrarSecao('config-horarios')">Configurar Horários</button>
   <div class="system-status">
     <label class="toggle" title="Abrir/fechar agendamentos">
       <input type="checkbox" id="toggleBookings" />
@@ -52,6 +54,50 @@
           <div id="agendamentosPablo"></div>
         </div>
       </div>
+    </section>
+
+    <!-- Configuração de Horários -->
+    <section id="config-horarios" class="painel hidden">
+      <h2>Configuração de horários</h2>
+
+      <label for="cfgBarbeiro">Barbeiro</label>
+      <select id="cfgBarbeiro">
+        <option value="Yure">Yure</option>
+        <option value="Pablo">Pablo</option>
+      </select>
+
+      <div class="grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;">
+        <div>
+          <label for="cfgStart">Início</label>
+          <input id="cfgStart" type="time" value="09:30">
+        </div>
+        <div>
+          <label for="cfgEnd">Fim</label>
+          <input id="cfgEnd" type="time" value="19:00">
+        </div>
+        <div>
+          <label for="cfgStep">Intervalo</label>
+          <select id="cfgStep">
+            <option value="30">30 min</option>
+            <option value="35" selected>35 min</option>
+            <option value="40">40 min</option>
+            <option value="45">45 min</option>
+            <option value="50">50 min</option>
+            <option value="55">55 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+        <div>
+          <label for="cfgOpen">Status</label>
+          <select id="cfgOpen">
+            <option value="true" selected>Aberto</option>
+            <option value="false">Fechado</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btnSalvarHorario">Salvar configurações</button>
+      <p class="hint">Essas configurações definem a grade visível para clientes ao escolherem este barbeiro.</p>
     </section>
 
     <!-- Relatório -->
