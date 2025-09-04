@@ -36,6 +36,23 @@ input, select, textarea {
   text-align: center;
 }
 
+/* Centraliza o texto do <select> e do item selecionado */
+#formAgendamento select {
+  text-align: center;          /* centraliza opções em alguns navegadores */
+  text-align-last: center;     /* centraliza o item selecionado (Chrome/Edge) */
+  -moz-text-align-last: center;/* centraliza no Firefox */
+}
+#formAgendamento select option { text-align: center; }
+
+/* iOS/Safari fallback: usa um truque com direction */
+@supports (-webkit-touch-callout: none) {
+  #formAgendamento select {
+    direction: rtl;            /* empurra o conteúdo para centralizar */
+    padding-right: 1.5rem;     /* mantém espaço para a seta */
+  }
+  #formAgendamento select option { direction: ltr; }
+}
+
 button {
   padding: 12px;
   width: 100%;
@@ -63,17 +80,34 @@ button:hover { background-color: #374151; }
   padding: 0 0 6px;
 }
 #pagamentoBox label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: grid;                 /* grid evita o bug do iOS com flex em <label> */
+  grid-auto-flow: column;        /* coloca radio e texto lado a lado */
+  justify-content: center;       /* centraliza horizontal */
+  align-items: center;           /* centraliza vertical */
+  gap: 10px;
   margin: 6px 0;
+  width: 100%;
   text-align: center;
 }
 #pagamentoBox input[type="radio"] {
-  margin: 0;
+  margin: 0;                     /* remove margem padrão do iOS */
+  justify-self: center;          /* garante centralização dentro do grid */
+  align-self: center;
   vertical-align: middle;
-  transform: translateY(0);
+}
+
+@supports (-webkit-touch-callout: none) {
+  #pagamentoBox label { 
+    display: grid;               /* reforça o grid no iOS */
+    grid-auto-flow: column; 
+    justify-content: center; 
+    align-items: center; 
+  }
+  #pagamentoBox input[type="radio"] {
+    -webkit-appearance: radio;  /* usa o radio nativo no iOS/WebKit */
+    appearance: auto;           /* padrão para outros navegadores */
+    margin: 0;
+  }
 }
 #pagamentoBox p,
 #pagamentoBox .pix-key,
