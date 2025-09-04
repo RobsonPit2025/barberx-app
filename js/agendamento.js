@@ -25,13 +25,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ===== PIX por barbeiro =====
   const PIX_BY_BARBER = {
-    Yure: "71993112261",
-    Yuri: "71993112261", // alias comum
+    Yuri: "71981218562",
     Pablo: "06126840593"
   };
   function normalizeBarberId(v){
     const s = (v || '').toString().toLowerCase();
-    if (s.includes('yure') || s.includes('yuri')) return 'Yure';
+    if (s.includes('yure') || s.includes('yuri')) return 'Yuri';
     if (s.includes('pablo')) return 'Pablo';
     return v;
   }
@@ -145,11 +144,13 @@ document.addEventListener('DOMContentLoaded', function(){
   async function getScheduleForBarber(barberId) {
     if (!barberId) return null;
     const id = normalizeBarberId(barberId);
-    const scheduleDocId = id === 'Yure' ? 'schedule_Yure' : (id === 'Pablo' ? 'schedule_Pablo' : null);
+    let scheduleDocId = id === 'Yuri' ? 'schedule_Yuri' : (id === 'Pablo' ? 'schedule_Pablo' : null);
     if (!scheduleDocId) return null;
 
     const db = getFirestore();
-    const snap = await getDoc(doc(db, 'settings', scheduleDocId));
+
+    // usa doc canônico
+    let snap = await getDoc(doc(db, 'settings', scheduleDocId));
     if (snap.exists()) return snap.data();
 
     // fallback padrão caso ainda não tenha sido configurado no admin

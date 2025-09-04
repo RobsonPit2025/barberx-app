@@ -265,7 +265,7 @@ function renderAgendamento(dados, container, id) {
   }
 }
 
-const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "in", ["Yuri", "Yure"]));
+const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "==", "Yuri"));
 const qPablo = query(collection(db, "agendamentos"), where("barbeiro", "==", "Pablo"));
 
 // Gerar relatório mensal
@@ -279,11 +279,11 @@ function gerarRelatorio(snapshot) {
     const mesAno = `${dataObj.getMonth() + 1}/${dataObj.getFullYear()}`;
 
     if (!resumo[mesAno]) {
-      resumo[mesAno] = { yure: 0, pablo: 0 };
+      resumo[mesAno] = { yuri: 0, pablo: 0 };
     }
 
-    if (barbeiro === "yuri" || barbeiro === "yure") {
-      resumo[mesAno].yure++;
+    if (barbeiro === "yuri") {
+      resumo[mesAno].yuri++;
     } else if (barbeiro === "pablo") {
       resumo[mesAno].pablo++;
     }
@@ -296,7 +296,7 @@ function gerarRelatorio(snapshot) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${mesAno}</td>
-      <td>${dados.yure}</td>
+      <td>${dados.yuri}</td>
       <td>${dados.pablo}</td>
     `;
     tbody.appendChild(tr);
@@ -433,7 +433,7 @@ const cfgDate    = document.getElementById('cfgDate');
 function normalizeBarberId(v){
   if(!v) return '';
   const s = String(v).toLowerCase();
-  if (s.includes('yuri') || s.includes('yure')) return 'Yure';
+  if (s.includes('yuri')) return 'Yuri';
   if (s.includes('pablo')) return 'Pablo';
   return v;
 }
@@ -479,7 +479,7 @@ function generateSlots(start,end,step){
 
 async function loadScheduleToUI(barberId) {
   if (!cfgStart || !cfgEnd || !cfgStep || !cfgOpen) return;
-  const id = (barberId === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+  const id = (barberId === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
   try {
     const snap = await getDoc(doc(db, 'settings', id));
     const data = snap.exists() ? snap.data() : { open:true, slotStart:'09:30', slotEnd:'19:00', slotStep:35 };
@@ -576,7 +576,7 @@ if (btnSalvar) {
       return;
     }
     try {
-      const id = (cfgBarbeiro?.value === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+      const id = (cfgBarbeiro?.value === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
       await setDoc(doc(db, 'settings', id), {
         open: cfgOpen?.value === 'true',
         slotStart: cfgStart?.value || '09:30',
