@@ -1,4 +1,4 @@
-import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, getDocs, query, where, runTransaction } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====
@@ -43,6 +43,35 @@ document.addEventListener('DOMContentLoaded', function(){
   const selectBarbeiro = document.getElementById('barbeiro');
   const pixKeyEl = document.getElementById('pixKey');
   const pixBox = document.getElementById('pixBox');
+
+  // Botão de copiar PIX (tenta achar por id, data-attr ou classe genérica)
+  const copyPixBtn = document.getElementById('copyPixBtn') || document.querySelector('[data-copy="pix"], .copy-pix');
+
+  // Copia texto para a área de transferência com fallback
+  async function copyTextToClipboard(text) {
+    if (!text) throw new Error('Texto vazio');
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch (_) { /* fallback abaixo */ }
+
+    // Fallback: usa textarea temporário
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
 
   // ===== Fila do cliente + bloqueio global =====
   const formAg = document.getElementById('formAgendamento') || document.querySelector('form');
@@ -195,7 +224,9 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!opt.value) return;
         if (ocupados.has(opt.value)) {
           opt.disabled = true;
-          opt.textContent = `${opt.value} (ocupado)`;
+          if (!/\(ocupado\)/i.test(opt.textContent)) {
+            opt.textContent = `${opt.textContent} (ocupado)`;
+          }
         }
       });
     } catch (_) {
@@ -216,7 +247,9 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!opt.value) return;
         if (ocupados.has(opt.value)) {
           opt.disabled = true;
-          opt.textContent = `${opt.value} (ocupado)`;
+          if (!/\(ocupado\)/i.test(opt.textContent)) {
+            opt.textContent = `${opt.textContent} (ocupado)`;
+          }
         }
       });
     }
@@ -238,6 +271,24 @@ document.addEventListener('DOMContentLoaded', function(){
     const nowM = nowMinutes();
     const futuros = slots.filter(t => toMinutes(t) >= nowM);
 
+    // ===== Janela de ALMOÇO: computa slots que caem dentro do almoço =====
+    const almoco = new Set();
+    const lunchStart = (sched.lunchStart || '').trim();
+    const lunchEnd   = (sched.lunchEnd   || '').trim();
+    if (lunchStart && lunchEnd) {
+      const ls = toMinutes(lunchStart);
+      const le = toMinutes(lunchEnd);
+      if (Number.isFinite(ls) && Number.isFinite(le) && step > 0) {
+        if (ls <= le) {
+          for (let t = ls; t < le; t += step) almoco.add(toHHMM(t));
+        } else {
+          // caso raro: almoço atravessa meia-noite
+          for (let t = ls; t < 1440; t += step) almoco.add(toHHMM(t));
+          for (let t = 0; t < le; t += step) almoco.add(toHHMM(t));
+        }
+      }
+    }
+
     if (futuros.length === 0) {
       // Sem horários restantes hoje
       const opt = document.createElement('option');
@@ -249,7 +300,9 @@ document.addEventListener('DOMContentLoaded', function(){
       for (const time of futuros) {
         const opt = document.createElement('option');
         opt.value = time;
-        opt.textContent = time;
+        const isLunch = almoco.has(time);
+        opt.textContent = isLunch ? `${time} (almoço)` : time;
+        if (isLunch) opt.disabled = true; // aparece, mas não selecionável
         selectHorario.appendChild(opt);
       }
 
@@ -277,6 +330,39 @@ document.addEventListener('DOMContentLoaded', function(){
     if (pixBox) {
       pixBox.style.display = !pagamentoBox.disabled ? 'block' : 'none';
     }
+
+    // habilita/desabilita botão de copiar conforme exista chave PIX
+    if (copyPixBtn) {
+      copyPixBtn.disabled = !chave;
+      copyPixBtn.setAttribute('aria-disabled', String(!chave));
+      copyPixBtn.title = chave ? 'Copiar chave PIX' : 'Selecione um barbeiro para ver a chave PIX';
+    }
+  }
+
+  // ===== Copiar chave PIX =====
+  if (copyPixBtn) {
+    copyPixBtn.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const txt = (pixKeyEl?.textContent || '').trim();
+      if (!txt) {
+        alert('Nenhuma chave PIX disponível. Selecione um barbeiro.');
+        return;
+      }
+      try {
+        await copyTextToClipboard(txt);
+        // feedback rápido
+        const original = copyPixBtn.textContent;
+        copyPixBtn.textContent = 'Copiado!';
+        copyPixBtn.disabled = true;
+        setTimeout(() => {
+          copyPixBtn.textContent = original || 'Copiar';
+          copyPixBtn.disabled = false;
+        }, 1200);
+      } catch (err) {
+        console.error('Falha ao copiar PIX:', err);
+        alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+      }
+    });
   }
 
   // ===== Calcula valor (metade/integral) baseado no serviço escolhido =====
@@ -324,6 +410,7 @@ document.addEventListener('DOMContentLoaded', function(){
   } else {
     if (pagamentoBox) pagamentoBox.disabled = true;
     if (pixBox) pixBox.style.display = 'none';
+    if (copyPixBtn) copyPixBtn.disabled = true;
   }
 
   // ===== Fechado/aberto GLOBAL (settings/app.bookingsOpen) =====
@@ -434,26 +521,51 @@ document.addEventListener('DOMContentLoaded', function(){
       }
 
       try {
-        await addDoc(collection(getFirestore(), 'agendamentos'), {
-          nome,
-          celular,
-          barbeiro: normalizeBarberId(barbeiroSel),
-          horario: horarioSel,
-          dataDia: todayISO(),
-          servico: servicoSel,
-          mensagem,
-          criadoEm: serverTimestamp(),
-          // Fila/pagamento
-          status: 'aguardando_pagamento',     // só entra na fila após confirmar PIX no admin
-          paymentMethod: 'pix',
-          paymentStatus: 'pending',
-          amountOption,                       // 'half' | 'full'
-          totalPrice,                         // preço do serviço
-          amount,                             // valor a pagar agora
-          pixKey,
-          pixNote,
-          userId: getAuth().currentUser?.uid || null,
-          userEmail: getAuth().currentUser?.email || null
+        const db = getFirestore();
+        const barberNorm = normalizeBarberId(barbeiroSel);
+        const dataISO = todayISO();
+        const slotKey = `${barberNorm}_${dataISO}_${horarioSel}`.replace(/\s+/g,'');
+
+        await runTransaction(db, async (tx) => {
+          const lockRef = doc(db, 'slot_locks', slotKey);
+          const lockSnap = await tx.get(lockRef);
+          if (lockSnap.exists()) {
+            throw new Error('Este horário acabou de ser ocupado. Escolha outro.');
+          }
+
+          // cria o lock do horário
+          tx.set(lockRef, {
+            barbeiro: barberNorm,
+            dataDia: dataISO,
+            horario: horarioSel,
+            createdAt: serverTimestamp(),
+            userId: getAuth().currentUser?.uid || null,
+            userEmail: getAuth().currentUser?.email || null
+          });
+
+          // cria o agendamento amarrado ao lock
+          const agRef = doc(collection(db, 'agendamentos'));
+          tx.set(agRef, {
+            nome,
+            celular,
+            barbeiro: barberNorm,
+            horario: horarioSel,
+            dataDia: dataISO,
+            servico: servicoSel,
+            mensagem,
+            criadoEm: serverTimestamp(),
+            status: 'aguardando_pagamento',
+            paymentMethod: 'pix',
+            paymentStatus: 'pending',
+            amountOption,
+            totalPrice,
+            amount,
+            pixKey,
+            pixNote,
+            userId: getAuth().currentUser?.uid || null,
+            userEmail: getAuth().currentUser?.email || null,
+            lockId: slotKey
+          });
         });
 
         // Feedback rápido

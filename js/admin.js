@@ -30,6 +30,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ===== Locks de horário: liberar quando concluir/remover/nao_comprovado =====
+function slotKeyFromData(data){
+  if(!data) return null;
+  const b = (data.barbeiro||'').trim();
+  const d = (data.dataDia||'').trim();
+  const h = (data.horario||'').trim();
+  if(!b||!d||!h) return null;
+  return `${b}_${d}_${h}`.replace(/\s+/g,'');
+}
+async function releaseLockForData(data){
+  try{
+    const key = data.lockId || slotKeyFromData(data);
+    if(!key) return;
+    await deleteDoc(doc(db, 'slot_locks', key));
+  }catch(e){ console.warn('Falha ao liberar lock:', e); }
+}
+
 const auth = getAuth(app);
 
 // --- Admins autorizados para abrir/fechar agendamentos ---
@@ -180,6 +197,8 @@ function renderAgendamento(dados, container, id) {
         concluidoPor: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
       });
 
+      // Libera lock do horário
+      try { await releaseLockForData(dados); } catch(_) {}
       // Remover da fila de agendamentos
       await deleteDoc(doc(db, "agendamentos", id));
       console.log("Agendamento finalizado e registrado.");
@@ -200,6 +219,7 @@ function renderAgendamento(dados, container, id) {
           updatedAt: serverTimestamp(),
           updatedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
         });
+        try { await releaseLockForData(dados); } catch(_) {}
         alert('Marcado como NÃO COMPROVADO. O horário foi liberado.');
       } catch (e) {
         console.error('Erro ao marcar não comprovado:', e);
@@ -235,6 +255,8 @@ function renderAgendamento(dados, container, id) {
           }
         } catch (_) { /* relatório é opcional */ }
 
+        // Libera lock do horário antes de remover
+        try { const d = snap?.data && snap.data(); if(d) await releaseLockForData(d); } catch(_) {}
         await deleteDoc(ref);
         alert('Agendamento removido. O horário foi liberado.');
       } catch (e) {
@@ -267,6 +289,28 @@ function renderAgendamento(dados, container, id) {
 
 const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "==", "Yuri"));
 const qPablo = query(collection(db, "agendamentos"), where("barbeiro", "==", "Pablo"));
+
+// Timestamp de ordenação baseado no horário AGENDADO (dataDia + horario)
+function scheduleTsFromData(data){
+  // Prioriza dataDia (YYYY-MM-DD) + horario (HH:MM)
+  if (data && data.dataDia && data.horario) {
+    // Monta string local; se for inválida, cai no fallback abaixo
+    const iso = `${data.dataDia}T${(data.horario || '00:00')}:00`;
+    const d = new Date(iso);
+    const t = d.getTime();
+    if (Number.isFinite(t)) return t;
+  }
+  // Fallbacks (ordenação antiga por criação)
+  if (data && data.criadoEm && typeof data.criadoEm.seconds === 'number') {
+    // inclui nanos para desempate estável
+    const ns = typeof data.criadoEm.nanoseconds === 'number' ? data.criadoEm.nanoseconds : 0;
+    return data.criadoEm.seconds * 1000 + Math.floor(ns / 1e6);
+  }
+  if (data && data.timestamp && typeof data.timestamp.seconds === 'number') {
+    return data.timestamp.seconds * 1000;
+  }
+  return 0;
+}
 
 // Gerar relatório mensal
 function gerarRelatorio(snapshot) {
@@ -339,10 +383,10 @@ onAuthStateChanged(auth, (user) => {
       else aguardando.push(docSnap);
     });
 
-    // ordena por criadoEm e renderiza pendentes com posição
+    // ordena por novo helper e renderiza pendentes com posição
     pendentes.sort((a, b) => {
-      const t1 = a.data().criadoEm?.seconds || 0;
-      const t2 = b.data().criadoEm?.seconds || 0;
+      const t1 = scheduleTsFromData(a.data());
+      const t2 = scheduleTsFromData(b.data());
       return t1 - t2;
     }).forEach((docSnap, index) => {
       const data = docSnap.data();
@@ -355,8 +399,8 @@ onAuthStateChanged(auth, (user) => {
 
     // depois renderiza aguardando_pagamento SEM posição
     aguardando.sort((a, b) => {
-      const t1 = a.data().criadoEm?.seconds || 0;
-      const t2 = b.data().criadoEm?.seconds || 0;
+      const t1 = scheduleTsFromData(a.data());
+      const t2 = scheduleTsFromData(b.data());
       return t1 - t2;
     }).forEach((docSnap) => {
       const data = docSnap.data();
@@ -380,10 +424,10 @@ onAuthStateChanged(auth, (user) => {
       else aguardando.push(docSnap);
     });
 
-    // ordena por criadoEm e renderiza pendentes com posição
+    // ordena por novo helper e renderiza pendentes com posição
     pendentes.sort((a, b) => {
-      const t1 = a.data().criadoEm?.seconds || 0;
-      const t2 = b.data().criadoEm?.seconds || 0;
+      const t1 = scheduleTsFromData(a.data());
+      const t2 = scheduleTsFromData(b.data());
       return t1 - t2;
     }).forEach((docSnap, index) => {
       const data = docSnap.data();
@@ -396,8 +440,8 @@ onAuthStateChanged(auth, (user) => {
 
     // depois renderiza aguardando_pagamento SEM posição
     aguardando.sort((a, b) => {
-      const t1 = a.data().criadoEm?.seconds || 0;
-      const t2 = b.data().criadoEm?.seconds || 0;
+      const t1 = scheduleTsFromData(a.data());
+      const t2 = scheduleTsFromData(b.data());
       return t1 - t2;
     }).forEach((docSnap) => {
       const data = docSnap.data();
@@ -429,6 +473,8 @@ const cfgStep     = document.getElementById('cfgStep');
 const cfgOpen     = document.getElementById('cfgOpen');
 const btnSalvar   = document.getElementById('btnSalvarHorario');
 const cfgDate    = document.getElementById('cfgDate');
+const cfgLunchStart = document.getElementById('cfgLunchStart');
+const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
 
 function normalizeBarberId(v){
   if(!v) return '';
@@ -487,6 +533,8 @@ async function loadScheduleToUI(barberId) {
     cfgEnd.value   = data.slotEnd   || '19:00';
     cfgStep.value  = String(data.slotStep || 35);
     cfgOpen.value  = String(Boolean(data.open));
+    if (cfgLunchStart) cfgLunchStart.value = data.lunchStart || '';
+    if (cfgLunchEnd)   cfgLunchEnd.value   = data.lunchEnd   || '';
   } catch (e) {
     console.warn('Não foi possível carregar configuração de horário:', e);
   }
@@ -501,6 +549,8 @@ async function renderSchedulePreview(){
   const start = cfgStart?.value || '09:30';
   const end   = cfgEnd?.value   || '19:00';
   const step  = Number(cfgStep?.value || 35);
+  const lunchStart = (cfgLunchStart?.value || '').trim();
+  const lunchEnd   = (cfgLunchEnd?.value || '').trim();
 
   box.innerHTML = '';
   if(!open){
@@ -534,16 +584,39 @@ async function renderSchedulePreview(){
     }
   }
 
+  // marca almoço como ocupado
+  const almoco = new Set();
+  if (lunchStart && lunchEnd) {
+    const ls = toMinutes(lunchStart);
+    const le = toMinutes(lunchEnd);
+    // Considera janela tradicional (sem cruzar madrugada)
+    if (Number.isFinite(ls) && Number.isFinite(le)) {
+      // Preenche com o mesmo passo da grade
+      const inc = Number(step || 35);
+      if (inc > 0) {
+        if (ls <= le) {
+          for (let t = ls; t < le; t += inc) almoco.add(toHHMM(t));
+        } else {
+          // caso raro: almoço cruza meia-noite
+          for (let t = ls; t < 1440; t += inc) almoco.add(toHHMM(t));
+          for (let t = 0; t < le; t += inc) almoco.add(toHHMM(t));
+        }
+      }
+    }
+  }
+
   // monta grade
   for(const hh of slots){
-    const taken = ocupados.has(hh);
+    const isLunch = almoco.has(hh);
+    const taken = isLunch || ocupados.has(hh);
     const item = document.createElement('div');
-    item.textContent = hh + (taken? ' (ocupado)':'');
+    item.textContent = hh + (isLunch ? ' (almoço)' : (taken? ' (ocupado)':''));
     item.style.padding='8px';
     item.style.border='1px solid #e5e7eb';
     item.style.borderRadius='8px';
     item.style.textAlign='center';
     if(taken){ item.style.opacity='.45'; item.style.background='#f3f4f6'; }
+    if(isLunch){ item.style.borderStyle = 'dashed'; }
     box.appendChild(item);
   }
 }
@@ -581,7 +654,9 @@ if (btnSalvar) {
         open: cfgOpen?.value === 'true',
         slotStart: cfgStart?.value || '09:30',
         slotEnd:   cfgEnd?.value   || '19:00',
-        slotStep:  stepVal
+        slotStep:  stepVal,
+        lunchStart: (cfgLunchStart?.value || '').trim() || null,
+        lunchEnd:   (cfgLunchEnd?.value   || '').trim() || null
       }, { merge: true });
       alert('Configuração de horários salva!');
       renderSchedulePreview();
