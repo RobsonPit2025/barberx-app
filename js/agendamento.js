@@ -315,7 +315,11 @@ document.addEventListener('DOMContentLoaded', function(){
       }
 
       // Bloqueia horários já ocupados hoje para este barbeiro
-      await disableTakenSlots(barberId, todayISO());
+      try {
+        await disableTakenSlots(barberId, todayISO());
+      } catch (err) {
+        console.warn('Não foi possível ler locks (slot_locks). A grade aparece sem "(ocupado)".', err);
+      }
     }
     // // Versão antiga (removida):
     // for (const time of slots) {
@@ -501,6 +505,11 @@ document.addEventListener('DOMContentLoaded', function(){
     // Reavalia a fila ao mudar usuário para garantir limites VIP corretos
     if (user && formAg) {
       watchMinhaFilaDoCliente();
+    }
+    // Recarrega a grade após login para garantir que os horários "(ocupado)"
+    // apareçam quando as regras exigem autenticação para ler `slot_locks`.
+    if (user && selectBarbeiro && selectBarbeiro.value) {
+      populateHorarioForBarber(selectBarbeiro.value);
     }
   });
 
