@@ -242,49 +242,24 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!selectHorario || !barberId) return;
     const db = getFirestore();
 
-    // Tenta com operador 'in'. Se seu Firestore não suportar, rodar duas queries separadas.
-    try {
-      const baseQ = query(
-        collection(db, 'agendamentos'),
-        where('barbeiro', '==', normalizeBarberId(barberId)),
-        where('dataDia', '==', dataDia),
-        where('status', 'in', ['aguardando_pagamento', 'pendente'])
-      );
-      const snap = await getDocs(baseQ);
-      const ocupados = new Set(snap.docs.map(d => (d.data().horario)));
-      Array.from(selectHorario.options).forEach(opt => {
-        if (!opt.value) return;
-        if (ocupados.has(opt.value)) {
-          opt.disabled = true;
-          if (!/\(ocupado\)/i.test(opt.textContent)) {
-            opt.textContent = `${opt.textContent} (ocupado)`;
-          }
+    // Lê os locks do barbeiro e do dia selecionado
+    const qLocks = query(
+      collection(db, 'slot_locks'),
+      where('barbeiro', '==', normalizeBarberId(barberId)),
+      where('dataDia', '==', dataDia)
+    );
+    const snap = await getDocs(qLocks);
+
+    const ocupados = new Set(snap.docs.map(d => (d.data().horario)));
+    Array.from(selectHorario.options).forEach(opt => {
+      if (!opt.value) return;
+      if (ocupados.has(opt.value)) {
+        opt.disabled = true;
+        if (!/\(ocupado\)/i.test(opt.textContent)) {
+          opt.textContent = `${opt.textContent} (ocupado)`;
         }
-      });
-    } catch (_) {
-      // Fallback com duas consultas (sem 'in')
-      const estados = ['aguardando_pagamento', 'pendente'];
-      const ocupados = new Set();
-      for (const st of estados) {
-        const qst = query(
-          collection(db, 'agendamentos'),
-          where('barbeiro', '==', normalizeBarberId(barberId)),
-          where('dataDia', '==', dataDia),
-          where('status', '==', st)
-        );
-        const snap2 = await getDocs(qst);
-        snap2.forEach(docSnap => ocupados.add(docSnap.data().horario));
       }
-      Array.from(selectHorario.options).forEach(opt => {
-        if (!opt.value) return;
-        if (ocupados.has(opt.value)) {
-          opt.disabled = true;
-          if (!/\(ocupado\)/i.test(opt.textContent)) {
-            opt.textContent = `${opt.textContent} (ocupado)`;
-          }
-        }
-      });
-    }
+    });
   }
 
   async function populateHorarioForBarber(barberId) {
