@@ -1,8 +1,33 @@
 import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, getDocs, query, where, runTransaction } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+// ===== VIP: O recurso de VIP é implementado apenas no lado do cliente (browser) para facilitar upgrades e testes rápidos. =====
+
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====
 document.addEventListener('DOMContentLoaded', function(){
+  // ===== VIP cache/configuração =====
+  let vipConfig = { emails: new Set(), uids: new Set(), maxActive: 2 };
+  function isVipUser(user) {
+    if (!user) return false;
+    const email = (user.email || '').toLowerCase();
+    return (email && vipConfig.emails.has(email)) || (user.uid && vipConfig.uids.has(user.uid));
+  }
+  function vipLimitFor(user) {
+    return isVipUser(user) ? (vipConfig.maxActive || 2) : 1;
+  }
+  // Carrega configuração VIP do Firestore
+  onSnapshot(doc(getFirestore(),'settings','vip'), (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
+      vipConfig.emails = new Set(Array.isArray(data.emails) ? data.emails.map(e => (e||'').toLowerCase()) : []);
+      vipConfig.uids = new Set(Array.isArray(data.uids) ? data.uids : []);
+      vipConfig.maxActive = typeof data.maxActive === 'number' ? data.maxActive : 2;
+    } else {
+      vipConfig.emails = new Set();
+      vipConfig.uids = new Set();
+      vipConfig.maxActive = 2;
+    }
+  });
   // ===== Configuração de serviços (provisório até a tabela oficial) =====
   // Quando a tabela chegar, podemos mover isso para o Firestore.
   const SERVICE_PRICES = {
@@ -109,12 +134,19 @@ document.addEventListener('DOMContentLoaded', function(){
       rot = 'Aguardando confirmação do pagamento PIX';
     }
 
+    const user = getAuth().currentUser;
+    const limit = vipLimitFor(user);
+    const vipHint = (limit > 1)
+      ? `<div style="margin-top:6px;color:#374151;font-size:12px">Conta VIP: você pode ter até ${limit} agendamentos ativos.</div>`
+      : '';
+
     filaBox.innerHTML = `
       <strong>Seu agendamento</strong><br>
       Barbeiro: ${barbeiro || '-'}<br>
       Horário: ${horario || '-'}<br>
       Status: ${rot}<br>
       <small>Calma aí 😎 Você já tem um corte agendado. Assim que o barbeiro finalizar, você pode marcar outro.</small>
+      ${vipHint}
     `;
     filaBox.style.display = 'block';
   }
@@ -280,11 +312,12 @@ document.addEventListener('DOMContentLoaded', function(){
       const le = toMinutes(lunchEnd);
       if (Number.isFinite(ls) && Number.isFinite(le) && step > 0) {
         if (ls <= le) {
-          for (let t = ls; t < le; t += step) almoco.add(toHHMM(t));
+          // inclui o horário final do almoço
+          for (let t = ls; t <= le; t += step) almoco.add(toHHMM(t));
         } else {
-          // caso raro: almoço atravessa meia-noite
+          // almoço atravessando a meia-noite: inclui o horário final
           for (let t = ls; t < 1440; t += step) almoco.add(toHHMM(t));
-          for (let t = 0; t < le; t += step) almoco.add(toHHMM(t));
+          for (let t = 0; t <= le; t += step) almoco.add(toHHMM(t));
         }
       }
     }
@@ -436,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function(){
     applyGlobalOpen(open);
   }, (_e)=> applyGlobalOpen(true));
 
-  // ===== Minha Fila do cliente (bloqueia novo agendamento se houver ativo) =====
+  // ===== Minha Fila do cliente (bloqueia novo agendamento se houver ativo, respeitando limite VIP) =====
   let unsubscribeMinhaFila = null;
   function watchMinhaFilaDoCliente() {
     const auth = getAuth();
@@ -452,22 +485,27 @@ document.addEventListener('DOMContentLoaded', function(){
     const qA = query(base, where('userId','==', user.uid), where('status','==','aguardando_pagamento'));
     const qP = query(base, where('userId','==', user.uid), where('status','==','pendente'));
 
+    let sizeA = 0;
+    let sizeP = 0;
     let ultimoDoc = null;
-    const applyQueue = (hasActive) => {
-      blockedByQueue = hasActive;
-      if (hasActive && ultimoDoc) showMinhaFila(ultimoDoc); else hideMinhaFila();
+    function recalc() {
+      const user = getAuth().currentUser;
+      const limit = vipLimitFor(user);
+      const total = sizeA + sizeP;
+      blockedByQueue = total >= limit;
+      if ((sizeA || sizeP) && ultimoDoc) showMinhaFila(ultimoDoc); else hideMinhaFila();
       applyDisableState();
-    };
+    }
 
     const unA = onSnapshot(qA, (snap) => {
-      const hasA = snap.size > 0;
-      if (hasA) ultimoDoc = snap.docs[0].data();
-      applyQueue(hasA || blockedByQueue);
+      sizeA = snap.size;
+      if (snap.size > 0) ultimoDoc = snap.docs[0].data();
+      recalc();
     });
     const unP = onSnapshot(qP, (snap) => {
-      const hasP = snap.size > 0;
-      if (hasP) ultimoDoc = snap.docs[0].data();
-      applyQueue(hasP || blockedByQueue);
+      sizeP = snap.size;
+      if (snap.size > 0) ultimoDoc = snap.docs[0].data();
+      recalc();
     });
 
     unsubscribeMinhaFila = () => { try { unA(); unP(); } catch(_) {} };
@@ -484,6 +522,10 @@ document.addEventListener('DOMContentLoaded', function(){
         try { unsubscribeMinhaFila(); } catch(_) {}
         unsubscribeMinhaFila = null;
       }
+    }
+    // Reavalia a fila ao mudar usuário para garantir limites VIP corretos
+    if (user && formAg) {
+      watchMinhaFilaDoCliente();
     }
   });
 

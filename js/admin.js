@@ -476,6 +476,67 @@ const cfgDate    = document.getElementById('cfgDate');
 const cfgLunchStart = document.getElementById('cfgLunchStart');
 const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
 
+// --- UI extra: seleção de almoço por clique na pré-visualização + botão limpar ---
+const cfgPreviewEl = document.getElementById('cfgPreview');
+
+// cria o botão "Limpar almoço" dinamicamente se não existir no HTML
+let btnClearLunch = document.getElementById('btnClearLunch');
+if (!btnClearLunch && cfgLunchEnd && cfgLunchEnd.parentNode) {
+  btnClearLunch = document.createElement('button');
+  btnClearLunch.id = 'btnClearLunch';
+  btnClearLunch.type = 'button';
+  btnClearLunch.textContent = 'Limpar almoço';
+  btnClearLunch.style.marginLeft = '8px';
+  cfgLunchEnd.parentNode.insertBefore(btnClearLunch, cfgLunchEnd.nextSibling);
+}
+
+if (btnClearLunch) {
+  btnClearLunch.addEventListener('click', () => {
+    if (cfgLunchStart) cfgLunchStart.value = '';
+    if (cfgLunchEnd)   cfgLunchEnd.value = '';
+    renderSchedulePreview();
+  });
+}
+
+// Permite escolher o intervalo de almoço clicando em dois horários na pré-visualização
+if (cfgPreviewEl) {
+  cfgPreviewEl.addEventListener('click', (ev) => {
+    const slot = ev.target.closest('[data-hh]');
+    if (!slot) return;
+    const hh = slot.getAttribute('data-hh');
+    if (!hh) return;
+
+    // 1º clique define início; 2º clique define fim (ordena automaticamente)
+    const curStart = (cfgLunchStart?.value || '').trim();
+    const curEnd   = (cfgLunchEnd?.value   || '').trim();
+
+    if (!curStart) {
+      if (cfgLunchStart) cfgLunchStart.value = hh;
+      if (cfgLunchEnd)   cfgLunchEnd.value = '';
+    } else if (!curEnd) {
+      // segundo clique
+      const s = toMinutes(curStart), e = toMinutes(hh);
+      if (Number.isFinite(s) && Number.isFinite(e)) {
+        if (e >= s) {
+          if (cfgLunchEnd) cfgLunchEnd.value = hh;
+        } else {
+          // se clicou um horário anterior, inverte
+          if (cfgLunchStart) cfgLunchStart.value = hh;
+          if (cfgLunchEnd)   cfgLunchEnd.value = curStart;
+        }
+      } else {
+        if (cfgLunchEnd) cfgLunchEnd.value = hh;
+      }
+    } else {
+      // já tinha os dois – reinicia seleção, começando pelo novo clique
+      if (cfgLunchStart) cfgLunchStart.value = hh;
+      if (cfgLunchEnd)   cfgLunchEnd.value = '';
+    }
+
+    renderSchedulePreview();
+  });
+}
+
 function normalizeBarberId(v){
   if(!v) return '';
   const s = String(v).toLowerCase();
@@ -595,28 +656,46 @@ async function renderSchedulePreview(){
       const inc = Number(step || 35);
       if (inc > 0) {
         if (ls <= le) {
-          for (let t = ls; t < le; t += inc) almoco.add(toHHMM(t));
+          for (let t = ls; t <= le; t += inc) almoco.add(toHHMM(t)); // inclui o horário final
         } else {
           // caso raro: almoço cruza meia-noite
           for (let t = ls; t < 1440; t += inc) almoco.add(toHHMM(t));
-          for (let t = 0; t < le; t += inc) almoco.add(toHHMM(t));
+          for (let t = 0; t <= le; t += inc) almoco.add(toHHMM(t)); // inclui o horário final
         }
       }
     }
   }
 
+  // garante que almoco também reflita os valores atuais dos inputs (caso venham de cliques)
+  if ((cfgLunchStart?.value || '') && (cfgLunchEnd?.value || '')) {
+    almoco.clear();
+    const ls = toMinutes(cfgLunchStart.value);
+    const le = toMinutes(cfgLunchEnd.value);
+    const inc = Number(step || 35);
+    if (Number.isFinite(ls) && Number.isFinite(le) && inc > 0) {
+      if (ls <= le) {
+        for (let t = ls; t <= le; t += inc) almoco.add(toHHMM(t)); // inclui o horário final
+      } else {
+        for (let t = ls; t < 1440; t += inc) almoco.add(toHHMM(t));
+        for (let t = 0; t <= le; t += inc) almoco.add(toHHMM(t)); // inclui o horário final
+      }
+    }
+  }
+
   // monta grade
-  for(const hh of slots){
+  for (const hh of slots) {
     const isLunch = almoco.has(hh);
     const taken = isLunch || ocupados.has(hh);
     const item = document.createElement('div');
-    item.textContent = hh + (isLunch ? ' (almoço)' : (taken? ' (ocupado)':''));
-    item.style.padding='8px';
-    item.style.border='1px solid #e5e7eb';
-    item.style.borderRadius='8px';
-    item.style.textAlign='center';
-    if(taken){ item.style.opacity='.45'; item.style.background='#f3f4f6'; }
-    if(isLunch){ item.style.borderStyle = 'dashed'; }
+    item.textContent = hh + (isLunch ? ' (almoço)' : (taken ? ' (ocupado)' : ''));
+    item.style.padding = '8px';
+    item.style.border = '1px solid #e5e7eb';
+    item.style.borderRadius = '8px';
+    item.style.textAlign = 'center';
+    item.style.cursor = 'pointer';
+    item.setAttribute('data-hh', hh);
+    if (taken) { item.style.opacity = '.45'; item.style.background = '#f3f4f6'; }
+    if (isLunch) { item.style.borderStyle = 'dashed'; item.style.background = '#fff7ed'; }
     box.appendChild(item);
   }
 }
