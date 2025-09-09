@@ -586,7 +586,8 @@ function generateSlots(start,end,step){
 
 async function loadScheduleToUI(barberId) {
   if (!cfgStart || !cfgEnd || !cfgStep || !cfgOpen) return;
-  const id = (barberId === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
+  const barber = normalizeBarberId(barberId);
+  const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
   try {
     const snap = await getDoc(doc(db, 'settings', id));
     const data = snap.exists() ? snap.data() : { open:true, slotStart:'09:30', slotEnd:'19:00', slotStep:35 };
@@ -728,7 +729,8 @@ if (btnSalvar) {
       return;
     }
     try {
-      const id = (cfgBarbeiro?.value === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
+      const barber = normalizeBarberId(cfgBarbeiro?.value);
+      const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
       await setDoc(doc(db, 'settings', id), {
         open: cfgOpen?.value === 'true',
         slotStart: cfgStart?.value || '09:30',

@@ -255,9 +255,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!opt.value) return;
       if (ocupados.has(opt.value)) {
         opt.disabled = true;
-        if (!/\(ocupado\)/i.test(opt.textContent)) {
-          opt.textContent = `${opt.textContent} (ocupado)`;
-        }
+        // sempre reescreve o rótulo para evitar duplicações tipo "(disponível) (ocupado)"
+        opt.textContent = `${opt.value} (ocupado)`;
       }
     });
   }
@@ -309,6 +308,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const opt = document.createElement('option');
         opt.value = time;
         const isLunch = almoco.has(time);
+        // NÃO adiciona "(disponível)" aqui para evitar duplicação posterior
         opt.textContent = isLunch ? `${time} (almoço)` : time;
         if (isLunch) opt.disabled = true; // aparece, mas não selecionável
         selectHorario.appendChild(opt);
@@ -320,6 +320,14 @@ document.addEventListener('DOMContentLoaded', function(){
       } catch (err) {
         console.warn('Não foi possível ler locks (slot_locks). A grade aparece sem "(ocupado)".', err);
       }
+      // Marcar os horários livres explicitamente como "(disponível)"
+      Array.from(selectHorario.options).forEach(opt => {
+        if (!opt.value) return; // ignora placeholder
+        if (!opt.disabled) {
+          // reescreve o rótulo garantindo formato consistente
+          opt.textContent = `${opt.value} (disponível)`;
+        }
+      });
     }
     // // Versão antiga (removida):
     // for (const time of slots) {
