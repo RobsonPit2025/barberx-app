@@ -6,26 +6,36 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====
 document.addEventListener('DOMContentLoaded', function(){
   // ===== VIP cache/configuração =====
-  let vipConfig = { emails: new Set(), uids: new Set(), maxActive: 2 };
+  let vipConfig = { enabled: false, emails: new Set(), uids: new Set(), maxActive: 2 };
   function isVipUser(user) {
+    if (!vipConfig.enabled) return false; // feature flag: VIP desligado => ignora
     if (!user) return false;
     const email = (user.email || '').toLowerCase();
     return (email && vipConfig.emails.has(email)) || (user.uid && vipConfig.uids.has(user.uid));
   }
   function vipLimitFor(user) {
+    if (!vipConfig.enabled) return 1; // VIP desligado => comportamento padrão, 1 ativo
     return isVipUser(user) ? (vipConfig.maxActive || 2) : 1;
+  }
+  // Limite por DIA (VIP = 10, comum = 1)
+  function vipDailyLimitFor(user) {
+    if (!vipConfig.enabled) return 1;
+    return isVipUser(user) ? 10 : 1;
   }
   // Carrega configuração VIP do Firestore
   onSnapshot(doc(getFirestore(),'settings','vip'), (snap) => {
+    // Valores seguros por padrão (feature flag OFF)
+    vipConfig.enabled = false;
+    vipConfig.emails = new Set();
+    vipConfig.uids = new Set();
+    vipConfig.maxActive = 2;
+
     if (snap.exists()) {
-      const data = snap.data();
+      const data = snap.data() || {};
+      vipConfig.enabled = Boolean(data.enabled); // só liga VIP se enabled === true
       vipConfig.emails = new Set(Array.isArray(data.emails) ? data.emails.map(e => (e||'').toLowerCase()) : []);
       vipConfig.uids = new Set(Array.isArray(data.uids) ? data.uids : []);
-      vipConfig.maxActive = typeof data.maxActive === 'number' ? data.maxActive : 2;
-    } else {
-      vipConfig.emails = new Set();
-      vipConfig.uids = new Set();
-      vipConfig.maxActive = 2;
+      vipConfig.maxActive = (typeof data.maxActive === 'number' && data.maxActive >= 1) ? data.maxActive : 2;
     }
   });
   // ===== Configuração de serviços (provisório até a tabela oficial) =====
@@ -135,9 +145,9 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     const user = getAuth().currentUser;
-    const limit = vipLimitFor(user);
-    const vipHint = (limit > 1)
-      ? `<div style="margin-top:6px;color:#374151;font-size:12px">Conta VIP: você pode ter até ${limit} agendamentos ativos.</div>`
+    const limit = vipDailyLimitFor(user);
+    const vipHint = (vipConfig.enabled && limit > 1)
+      ? `<div style="margin-top:6px;color:#374151;font-size:12px">Conta VIP: você pode ter até ${limit} agendamentos ativos <strong>por dia</strong>.</div>`
       : '';
 
     filaBox.innerHTML = `
@@ -468,16 +478,17 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     const db = getFirestore();
     const base = collection(db, 'agendamentos');
+    const dataHoje = todayISO();
 
-    const qA = query(base, where('userId','==', user.uid), where('status','==','aguardando_pagamento'));
-    const qP = query(base, where('userId','==', user.uid), where('status','==','pendente'));
+    const qA = query(base, where('userId','==', user.uid), where('dataDia','==', dataHoje), where('status','==','aguardando_pagamento'));
+    const qP = query(base, where('userId','==', user.uid), where('dataDia','==', dataHoje), where('status','==','pendente'));
 
     let sizeA = 0;
     let sizeP = 0;
     let ultimoDoc = null;
     function recalc() {
       const user = getAuth().currentUser;
-      const limit = vipLimitFor(user);
+      const limit = vipDailyLimitFor(user);
       const total = sizeA + sizeP;
       blockedByQueue = total >= limit;
       if ((sizeA || sizeP) && ultimoDoc) showMinhaFila(ultimoDoc); else hideMinhaFila();
@@ -554,10 +565,26 @@ document.addEventListener('DOMContentLoaded', function(){
         return;
       }
 
+      // Verificação de limite diário (VIP por dia)
       try {
         const db = getFirestore();
         const barberNorm = normalizeBarberId(barbeiroSel);
         const dataISO = todayISO();
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const perDayLimit = vipDailyLimitFor(user);
+        const qCount = query(
+          collection(db, 'agendamentos'),
+          where('userId','==', user?.uid || ''),
+          where('dataDia','==', dataISO),
+          where('status','in', ['aguardando_pagamento','pendente'])
+        );
+        const snapCount = await getDocs(qCount);
+        if (snapCount.size >= perDayLimit) {
+          alert(`Você atingiu o limite de ${perDayLimit} agendamentos ativos para hoje.`);
+          return;
+        }
+
         const slotKey = `${barberNorm}_${dataISO}_${horarioSel}`.replace(/\s+/g,'');
 
         await runTransaction(db, async (tx) => {
