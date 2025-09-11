@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function(){
       vipConfig.uids = new Set(Array.isArray(data.uids) ? data.uids : []);
       vipConfig.maxActive = (typeof data.maxActive === 'number' && data.maxActive >= 1) ? data.maxActive : 2;
     }
+    // Reavalia bloqueio global considerando estado VIP atualizado
+    applyGlobalOpen(bookingsOpenCurrent);
   });
   // ===== Configuração de serviços (provisório até a tabela oficial) =====
   // Quando a tabela chegar, podemos mover isso para o Firestore.
@@ -179,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   let blockedByQueue = false;
   let blockedByGlobal = false;
+  let bookingsOpenCurrent = true; // último valor conhecido de settings/app.bookingsOpen
   function applyDisableState() {
     setFormDisabled(blockedByQueue || blockedByGlobal);
   }
@@ -443,24 +446,31 @@ document.addEventListener('DOMContentLoaded', function(){
     if (copyPixBtn) copyPixBtn.disabled = true;
   }
 
-  // ===== Fechado/aberto GLOBAL (settings/app.bookingsOpen) =====
   function applyGlobalOpen(bookingsOpen) {
-    blockedByGlobal = !bookingsOpen;
+  // guarda o último valor conhecido para reavaliar quando VIP/auth mudar
+  bookingsOpenCurrent = !!bookingsOpen;
 
-    // Página pode não ter o aviso nem o form (ex.: index.html)
-    if (!statusGlobalMsg) {
-      applyDisableState();
-      return;
-    }
+  const user = getAuth().currentUser;
+  const vipBypass = vipConfig.enabled && isVipUser(user); // VIP pode agendar mesmo com global fechado
 
-    if (!bookingsOpen) {
-      statusGlobalMsg.textContent = 'Agendamentos fechados no momento. Aguarde o barbeiro abrir.';
-      statusGlobalMsg.style.display = 'block';
-    } else {
-      statusGlobalMsg.style.display = 'none';
-    }
+  blockedByGlobal = !bookingsOpen && !vipBypass;
+
+  // Página pode não ter o aviso nem o form (ex.: index.html)
+  if (!statusGlobalMsg) {
     applyDisableState();
+    return;
   }
+
+  if (!bookingsOpen && !vipBypass) {
+    statusGlobalMsg.textContent = 'Agendamentos fechados no momento. Aguarde o barbeiro abrir.';
+    statusGlobalMsg.style.display = 'block';
+  } else {
+    // VIP bypass ou aberto normalmente => oculta aviso
+    statusGlobalMsg.style.display = 'none';
+  }
+
+  applyDisableState();
+}
   onSnapshot(doc(getFirestore(), 'settings', 'app'), (snap) => {
     const open = snap.exists() ? !!snap.data().bookingsOpen : true;
     applyGlobalOpen(open);
@@ -530,6 +540,9 @@ document.addEventListener('DOMContentLoaded', function(){
     if (user && selectBarbeiro && selectBarbeiro.value) {
       populateHorarioForBarber(selectBarbeiro.value);
     }
+
+    // Reavalia bloqueio global considerando VIP/auth atual
+    applyGlobalOpen(bookingsOpenCurrent);
   });
 
   // ===== Submit: salvar agendamento com pagamento antecipado (aguardando confirmação) =====
