@@ -40,17 +40,122 @@ function slotKeyFromData(data){
   return `${b}_${d}_${h}`.replace(/\s+/g,'');
 }
 async function releaseLockForData(data){
+  let removed = 0;
   try{
-    const key = data.lockId || slotKeyFromData(data);
-    if(!key) return;
-    await deleteDoc(doc(db, 'slot_locks', key));
-  }catch(e){ console.warn('Falha ao liberar lock:', e); }
+    if(!data) return 0;
+
+    const rawBarb = (data.barbeiro||'').trim();
+    const normBarb = (typeof normalizeBarberId === 'function' ? normalizeBarberId(rawBarb) : rawBarb) || '';
+    const barbVars = new Set([rawBarb, normBarb, rawBarb.toLowerCase(), normBarb.toLowerCase()].filter(Boolean));
+
+    const d = (data.dataDia||'').trim();
+    const h = (data.horario||'').trim();
+    const sepVariants = ['_', '-'];
+
+    const candidates = new Set();
+
+    // 0) lockId salvo no agendamento (preferencial)
+    if (data.lockId && typeof data.lockId === 'string') {
+      candidates.add(String(data.lockId).trim());
+      candidates.add(String(data.lockId).trim().toLowerCase());
+    }
+
+    // 1) Gerar combinações com separadores e variações de barbeiro
+    if (d && h) {
+      for (const b of barbVars){
+        for (const sep of sepVariants){
+          candidates.add(`${b}${sep}${d}${sep}${h}`);
+          candidates.add(`${b}${sep}${d}${sep}${h}`.replace(/\s+/g,''));
+          candidates.add(`${b}${sep}${d}${sep}${h}`.toLowerCase());
+          candidates.add(`${b}${sep}${d}${sep}${h}`.replace(/\s+/g,'').toLowerCase());
+        }
+      }
+    }
+
+    // 2) Também tente a versão sem separador (alguns códigos antigos)
+    if (d && h) {
+      for (const b of barbVars){
+        const noSep = `${b}${d}${h}`;
+        candidates.add(noSep);
+        candidates.add(noSep.toLowerCase());
+        candidates.add(noSep.replace(/\s+/g,''));
+        candidates.add(noSep.replace(/\s+/g,'').toLowerCase());
+      }
+    }
+
+    // Tenta deletar todas as candidatas
+    for (const key of candidates) {
+      if (!key) continue;
+      try {
+        await deleteDoc(doc(db, 'slot_locks', key));
+        removed++;
+      } catch(e){
+        // segue tentando as demais
+        // console.warn('Falha ao liberar lock com chave', key, e);
+      }
+    }
+  }catch(e){ console.warn('Falha geral ao liberar lock:', e); }
+  return removed;
+}
+
+// Fallback helper: apaga slot_locks por query quando IDs não batem
+async function forceReleaseByFields(barbeiro, dataDia, horario){
+  let removed = 0;
+  try{
+    const nb = typeof normalizeBarberId === 'function' ? normalizeBarberId(barbeiro) : (barbeiro||'');
+    if(!nb || !dataDia || !horario) return 0;
+    const qLocks = query(
+      collection(db, 'slot_locks'),
+      where('barbeiro','==', nb),
+      where('dataDia','==', dataDia),
+      where('horario','==', horario)
+    );
+    const snap = await getDocs(qLocks);
+    for(const d of snap.docs){
+      try{ await deleteDoc(d.ref); removed++; }catch(_){}
+    }
+  }catch(e){ console.warn('forceReleaseByFields falhou:', e); }
+  return removed;
+}
+
+// Fallback extra: libera por usuário (userId / userEmail) + dataDia/horario
+async function forceReleaseByUser(userId, userEmail, dataDia, horario){
+  let removed = 0;
+  try{
+    const qTasks = [];
+    if (userId) {
+      qTasks.push(query(
+        collection(db, 'slot_locks'),
+        where('userId','==', String(userId)),
+        where('dataDia','==', dataDia || ''),
+        where('horario','==', horario || '')
+      ));
+    }
+    if (userEmail) {
+      qTasks.push(query(
+        collection(db, 'slot_locks'),
+        where('userEmail','==', String(userEmail).toLowerCase()),
+        where('dataDia','==', dataDia || ''),
+        where('horario','==', horario || '')
+      ));
+    }
+    for (const ql of qTasks){
+      try{
+        const snap = await getDocs(ql);
+        for (const d of snap.docs){ try{ await deleteDoc(d.ref); removed++; }catch(_){} }
+      }catch(_){/* continua */}
+    }
+  }catch(e){ console.warn('forceReleaseByUser falhou:', e); }
+  return removed;
 }
 
 const auth = getAuth(app);
 
 // --- Admins autorizados para abrir/fechar agendamentos ---
-const ADMINS = ["admin1@barberx.com", "admin2@barberx.com"];
+const ADMINS = [
+  "admin1@barberx.com",
+  "admin2@barberx.com"
+];
 
 function isCurrentUserAdmin(){
   const u = auth.currentUser;
@@ -197,8 +302,13 @@ function renderAgendamento(dados, container, id) {
         concluidoPor: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
       });
 
-      // Libera lock do horário
-      try { await releaseLockForData(dados); } catch(_) {}
+      // Libera lock do horário (candidatos -> fallback por campos)
+      try {
+        let r = await releaseLockForData(dados);
+        if (r < 1) r += await forceReleaseByFields(dados.barbeiro, dados.dataDia, dados.horario);
+        if (r < 1) r += await forceReleaseByUser(dados.userId, (dados.email||dados.userEmail), dados.dataDia, dados.horario);
+        if (r < 1) console.warn('Nenhum lock encontrado para liberar (concluir):', dados);
+      } catch(e) { console.warn('Falha ao liberar lock (concluir):', e); }
       // Remover da fila de agendamentos
       await deleteDoc(doc(db, "agendamentos", id));
       console.log("Agendamento finalizado e registrado.");
@@ -219,7 +329,12 @@ function renderAgendamento(dados, container, id) {
           updatedAt: serverTimestamp(),
           updatedBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
         });
-        try { await releaseLockForData(dados); } catch(_) {}
+        try {
+          let r = await releaseLockForData(dados);
+          if (r < 1) r += await forceReleaseByFields(dados.barbeiro, dados.dataDia, dados.horario);
+          if (r < 1) r += await forceReleaseByUser(dados.userId, (dados.email||dados.userEmail), dados.dataDia, dados.horario);
+          if (r < 1) console.warn('Nenhum lock encontrado para liberar (nao_comprovado):', dados);
+        } catch(e) { console.warn('Falha ao liberar lock (nao_comprovado):', e); }
         alert('Marcado como NÃO COMPROVADO. O horário foi liberado.');
       } catch (e) {
         console.error('Erro ao marcar não comprovado:', e);
@@ -236,28 +351,47 @@ function renderAgendamento(dados, container, id) {
       if (!confirm('Remover este agendamento? Isso liberará o horário.')) return;
       try {
         const ref = doc(db, 'agendamentos', id);
-        // (Opcional) registrar no relatório antes de remover
+        // Buscar dados atuais do agendamento uma vez
+        let snap; let dataForRelease = dados; // fallback aos dados da renderização
         try {
-          const snap = await getDoc(ref);
-          if (snap.exists()) {
-            const d = snap.data();
-            await addDoc(collection(db, 'relatorios'), {
-              tipo: 'removido',
-              motivo: 'no_show',
-              agendamentoId: id,
-              barbeiro: d.barbeiro || '',
-              dataDia: d.dataDia || '',
-              horario: d.horario || '',
-              cliente: d.nome || '',
-              createdAt: serverTimestamp(),
-              by: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
-            });
+          snap = await getDoc(ref);
+          if (snap && snap.exists()) {
+            dataForRelease = snap.data();
+            // Registrar no Firestore (coleção relatorios) — opcional
+            try {
+              await addDoc(collection(db, 'relatorios'), {
+                tipo: 'removido',
+                motivo: 'no_show',
+                agendamentoId: id,
+                barbeiro: dataForRelease.barbeiro || '',
+                dataDia: dataForRelease.dataDia || '',
+                horario: dataForRelease.horario || '',
+                cliente: dataForRelease.nome || '',
+                createdAt: serverTimestamp(),
+                by: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin'
+              });
+            } catch (_) { /* relatório é opcional */ }
           }
-        } catch (_) { /* relatório é opcional */ }
+        } catch (_) { /* leitura opcional */ }
 
-        // Libera lock do horário antes de remover
-        try { const d = snap?.data && snap.data(); if(d) await releaseLockForData(d); } catch(_) {}
+        // Libera lock do horário ANTES de remover o agendamento
+        try {
+          let r = await releaseLockForData(dataForRelease);
+          if (r < 1) r += await forceReleaseByFields(dataForRelease.barbeiro, dataForRelease.dataDia, dataForRelease.horario);
+          if (r < 1) r += await forceReleaseByUser(dataForRelease.userId, (dataForRelease.email||dataForRelease.userEmail), dataForRelease.dataDia, dataForRelease.horario);
+          if (r < 1) console.warn('Nenhum lock encontrado para liberar (remover-pre):', dataForRelease);
+        } catch(e) { console.warn('Falha ao liberar lock (remover-pre):', e); }
+
+        // Remove o agendamento
         await deleteDoc(ref);
+
+        // Fallback defensivo pós-remoção (caso ainda tenha sobrado lock por divergência de ID)
+        try {
+          let r = await forceReleaseByFields(dataForRelease.barbeiro, dataForRelease.dataDia, dataForRelease.horario);
+          if (r < 1) r += await forceReleaseByUser(dataForRelease.userId, (dataForRelease.email||dataForRelease.userEmail), dataForRelease.dataDia, dataForRelease.horario);
+          if (r < 1) console.warn('Nenhum lock encontrado para liberar (remover-pos):', dataForRelease);
+        } catch(e) { console.warn('Falha ao liberar lock (remover-pos):', e); }
+
         alert('Agendamento removido. O horário foi liberado.');
       } catch (e) {
         console.error('Erro ao remover agendamento:', e);
