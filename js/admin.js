@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getDocFromServer } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 function mostrarSecao(id) {
@@ -511,6 +512,9 @@ const cfgDate    = document.getElementById('cfgDate');
 const cfgLunchStart = document.getElementById('cfgLunchStart');
 const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
 
+// Cache local para o status aberto/fechado de cada barbeiro
+const barberStatusCache = {};
+
 // Função para exibir campos progressivamente na configuração de horários (NOVO FLUXO)
 function atualizarVisibilidadeCampos() {
   // Helper para obter o contêiner apropriado do campo
@@ -699,15 +703,21 @@ function generateSlots(start,end,step){
 async function loadScheduleToUI(barberId) {
   if (!cfgStart || !cfgEnd || !cfgStep || !cfgOpen) return;
   const barber = normalizeBarberId(barberId);
-  const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
+  // Checa o cache local de status aberto/fechado
+  if (barberStatusCache.hasOwnProperty(barber)) {
+    cfgOpen.value = String(barberStatusCache[barber]);
+  }
+  const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
   try {
-    const snap = await getDoc(doc(db, 'settings', id));
+    const snap = await getDocFromServer(doc(db, 'settings', id));
     const data = snap.exists() ? snap.data() : { open:true, slotStart:'09:30', slotEnd:'19:00', slotStep:35 };
     cfgStart.value = data.slotStart || '09:30';
     cfgEnd.value   = data.slotEnd   || '19:00';
     cfgStep.value  = String(data.slotStep || 35);
     // Sempre define o valor real do status do barbeiro selecionado
     cfgOpen.value = String(Boolean(data.open));
+    // Atualiza o cache local com o status do barbeiro
+    barberStatusCache[barber] = data.open;
     if (cfgLunchStart) cfgLunchStart.value = data.lunchStart || '';
     if (cfgLunchEnd)   cfgLunchEnd.value   = data.lunchEnd   || '';
   } catch (e) {
@@ -828,10 +838,22 @@ if (cfgBarbeiro) {
     renderSchedulePreview();
     // atualizarVisibilidadeCampos será chamada no final de loadScheduleToUI
   });
-  // Listener para o campo de status (aberto/fechado)
+  // Listener para o campo de status (aberto/fechado) com gravação automática no Firestore
   if (cfgOpen) {
-    cfgOpen.addEventListener('change', () => {
+    cfgOpen.addEventListener('change', async () => {
       atualizarVisibilidadeCampos();
+      try {
+        const barber = normalizeBarberId(cfgBarbeiro?.value);
+        const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+        await setDoc(doc(db, 'settings', id), {
+          open: cfgOpen.value === 'true'
+        }, { merge: true });
+        // Atualiza o cache local após salvar no Firestore
+        barberStatusCache[normalizeBarberId(cfgBarbeiro?.value)] = cfgOpen.value === 'true';
+        console.log(`Status de ${barber} salvo automaticamente como ${cfgOpen.value === 'true' ? 'ABERTO' : 'FECHADO'}`);
+      } catch (e) {
+        console.error('Erro ao salvar status automaticamente:', e);
+      }
     });
   }
   [cfgStart, cfgLunchStart, cfgLunchEnd, cfgEnd, cfgStep].forEach(el => {
@@ -857,7 +879,7 @@ if (btnSalvar) {
     }
     try {
       const barber = normalizeBarberId(cfgBarbeiro?.value);
-      const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yuri';
+      const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
       await setDoc(doc(db, 'settings', id), {
         open: cfgOpen?.value === 'true',
         slotStart: cfgStart?.value || '09:30',
