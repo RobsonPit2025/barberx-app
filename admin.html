@@ -17,13 +17,13 @@
   </style>
 </head>
 <body>
+  <button class="menu-toggle" onclick="toggleMenu()">☰</button>
   <div class="sidebar">
   <h2>Admin</h2>
 </head>
   <button onclick="mostrarSecao('inicio')">Fila do Dia</button>
   <button onclick="mostrarSecao('relatorio')">Relatório</button>
-  <button onclick="mostrarSecao('imagens')">Adicionar Imagens</button>
-  <button onclick="mostrarSecao('config-horarios')">Configurar Horários</button>
+  <button onclick="mostrarSecao('config')">Configurar Horários</button>
   <div class="system-status">
     <label class="toggle" title="Abrir/fechar agendamentos">
       <input type="checkbox" id="toggleBookings" />
@@ -47,17 +47,22 @@
       <div class="fila">
         <div class="card-fila">
           <h3>Yure</h3>
-          <div id="agendamentosYuri"></div>
+          <button onclick="mostrarFilaBarbeiro('Yure')">Ver fila</button>
         </div>
         <div class="card-fila">
           <h3>Pablo</h3>
-          <div id="agendamentosPablo"></div>
+          <button onclick="mostrarFilaBarbeiro('Pablo')">Ver fila</button>
         </div>
       </div>
     </section>
 
+    <section id="filaBarbeiro" class="painel hidden">
+      <h2 id="tituloFila"></h2>
+      <div id="listaAgendamentos"></div>
+    </section>
+
     <!-- Configuração de Horários -->
-    <section id="config-horarios" class="painel hidden">
+    <section id="config" class="painel hidden">
       <h2>Configuração de horários</h2>
 
       <label for="cfgBarbeiro">Barbeiro</label>
@@ -127,21 +132,6 @@
       </table>
     </section>
 
-    <!-- Upload Imagem -->
-    <section id="imagens" class="painel hidden">
-      <h2>Adicionar Imagens dos Cortes</h2>
-      <label for="barbeiroSelect">Barbeiro:</label>
-      <select id="barbeiroSelect">
-        <option value="yure">Yure</option>
-        <option value="pablo">Pablo</option>
-      </select>
-      <br /><br />
-      <input type="file" id="imagemCorte" />
-      <br /><br />
-      <button id="btnEnviarImagem">Enviar Imagem</button>
-      <p id="mensagemImagem"></p>
-    </section>
-
   </div>
 
   <script>
@@ -151,7 +141,25 @@
       });
       document.getElementById(id).classList.remove('hidden');
     }
+    function mostrarFilaBarbeiro(nome) {
+      document.querySelectorAll('.painel').forEach(secao => secao.classList.add('hidden'));
+      document.getElementById('filaBarbeiro').classList.remove('hidden');
+      document.getElementById('tituloFila').textContent = `Fila de ${nome}`;
+      // Aqui você futuramente pode puxar os agendamentos do Firebase
+    }
   </script>
   <script type="module" src="js/admin.js"></script>
+<script>
+  function toggleMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('active');
+    document.body.classList.toggle('menu-open');
+  }
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    mostrarSecao('inicio');
+  });
+</script>
 </body>
 </html>

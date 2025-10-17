@@ -1,98 +1,111 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  display: flex;
+/* === Layout base === */
+* {
+  transition: all 0.2s ease-in-out;
 }
 
-.sidebar {
-  width: 220px;
-  background-color: #111;
-  color: #fff;
-  height: 100vh;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sidebar h2 {
-  margin-bottom: 20px;
-  font-size: 20px;
-}
-
-.sidebar button {
-  padding: 10px;
-  background: #333;
-  color: white;
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: #222;
   border: none;
+  color: white;
+  padding: 10px 12px;
   border-radius: 6px;
+  font-size: 1.2rem;
+  z-index: 1000;
   cursor: pointer;
 }
 
-.sidebar button:hover {
-  background: #555;
+body {
+  margin: 0;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background-color: #f8f9fb;
+  color: #333;
+  display: flex;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
+/* === Sidebar === */
+.sidebar {
+  width: 250px;
+  background: linear-gradient(180deg, #222 0%, #111 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar h2 {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.sidebar button {
+  background: #2a2a2a;
+  color: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar button:hover {
+  background: #444;
+  transform: translateY(-1px);
+}
+
+/* === Conteúdo principal === */
 .content {
   flex-grow: 1;
   padding: 30px;
-  background-color: #f4f4f4;
+  background-color: #f8f9fb;
   box-sizing: border-box;
 }
 
+h1, h2, h3 {
+  font-weight: 600;
+  color: #222;
+}
+
+/* === Fila de agendamentos === */
 .fila {
   display: flex;
-  gap: 30px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
-.queue {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+.card-fila {
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
   flex: 1;
   min-width: 250px;
 }
 
-.queue h3 {
-  margin-top: 0;
+.card-fila:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.queue ul {
-  list-style: none;
-  padding: 0;
+.card-fila h3 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+  color: #333;
 }
 
-.queue ul li {
-  padding: 8px;
-  border-bottom: 1px solid #ccc;
-}
-
-.painel {
-  display: none;
-}
-
-.painel.active {
-  display: block;
-}
-
-#adicionarImagens {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-#adicionarImagens select,
-#adicionarImagens input,
-#adicionarImagens button {
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  max-width: 300px;
-}
-
-/* Tabela do Relatório */
+/* === Tabelas === */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -119,165 +132,115 @@ table tr:hover {
   background-color: #f2f2f2;
 }
 
-.painel {
-  display: none;
-}
-
-.painel:not(.hidden) {
-  display: block;
-}
-
-.hidden {
-  display: none !important;
-}
-
-.motivacional {
-  font-style: italic;
-  margin-bottom: 20px;
-  color: #666;
-  font-size: 16px;
-}
-
-.fila {
-  display: flex;
-  gap: 20px;
-}
-
-.card-fila {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  flex: 1;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-}
-
-.btn-concluir {
-  margin-top: 8px;
+/* === Botões de ação === */
+.btn-concluir,
+.btn-confirmar-pix,
+.btn-nao-comprovado,
+.btn-remover {
   background-color: #d9534f;
   color: white;
   border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
   cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
-.btn-concluir:hover {
+.btn-concluir:hover,
+.btn-confirmar-pix:hover,
+.btn-nao-comprovado:hover,
+.btn-remover:hover {
   background-color: #c9302c;
 }
 
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
+/* === Layout Responsivo === */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
 
-@media (max-width: 600px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 220px;
+    height: 100%;
+    background: linear-gradient(180deg, #222 0%, #111 100%);
+    color: white;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 10px;
+    transition: left 0.3s ease-in-out;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+  }
+
+  .sidebar.active {
+    left: 0;
+  }
+
+  .sidebar button {
+    width: 100%;
+    text-align: left;
+    margin: 6px 0;
+    padding: 10px;
+    font-size: 1rem;
+  }
+
+  body.menu-open {
+    overflow: hidden;
+  }
+
   body {
     flex-direction: column;
   }
 
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 10px;
-    height: auto;
-  }
-
-  .sidebar button {
-    flex: 1 1 100px;
-    margin: 5px;
-  }
-
   .content {
     padding: 15px;
     width: 100%;
-    max-width: 400px;
+    max-width: 600px;
     margin: 0 auto;
-    overflow-x: hidden;
-    box-sizing: border-box;
-  }
-
-  .fila {
-    flex-direction: column;
-    gap: 15px;
-    align-items: center;
-  }
-
-  .queue {
-    min-width: unset;
-  }
-
-  table th,
-  table td {
-    padding: 8px;
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 600px) {
-  .content {
-    padding: 15px;
-    width: 100%;
-    box-sizing: border-box;
   }
 
   .card-fila {
     width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
-  .queue {
-    width: 100%;
+  table th,
+  table td {
+    font-size: 13px;
+    padding: 8px;
   }
 }
-/* === Ações nos cards da fila (admin) === */
-.linha {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
+/* === Controle de visibilidade das seções === */
+.hidden {
+  display: none !important;
 }
 
-.acoes {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+/* === Ajustes visuais gerais === */
+.painel {
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* Botões padrão das ações */
-.acoes button {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
+/* === Correção de rolagem lateral no mobile === */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-/* Cores por ação (mantém .btn-concluir existente) */
-/* Unificado: mesmas cores de .btn-concluir */
-.btn-confirmar-pix,
-.btn-nao-comprovado,
-.btn-remover {
-  background-color: #d9534f; /* mesma cor do concluir */
-  color: white;
+/* Garante que o menu lateral não empurre o conteúdo */
+.sidebar {
+  overflow-x: hidden;
 }
 
-.btn-confirmar-pix:hover,
-.btn-nao-comprovado:hover,
-.btn-remover:hover {
-  background-color: #c9302c; /* mesma cor do concluir hover */
-}
-
-/* Estado desabilitado */
-.acoes button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Responsivo: ações em coluna no mobile */
-@media (max-width: 600px) {
-  .acoes { width: 100%; }
-  .acoes button {
-    flex: 1 1 140px;
-  }
+/* Evita que o corpo se mova quando o menu está aberto */
+body.menu-open {
+  position: fixed;
+  width: 100%;
 }

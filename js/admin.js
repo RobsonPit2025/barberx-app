@@ -12,9 +12,28 @@ function mostrarSecao(id) {
   if (secaoAtiva) {
     secaoAtiva.classList.remove('hidden');
   }
+  document.body.classList.remove('menu-open');
+
+  // Se for o painel de fila, esconde as filas até escolher o barbeiro
+  if (id === "fila") {
+    document.getElementById("filaYuri")?.classList.add("hidden");
+    document.getElementById("filaPablo")?.classList.add("hidden");
+  }
 }
 // Torna a função acessível no HTML
 window.mostrarSecao = mostrarSecao;
+
+// Função para mostrar a fila do barbeiro selecionado
+function mostrarFilaBarbeiro(barbeiro) {
+  // Esconde todas as filas
+  document.getElementById("filaYuri")?.classList.add("hidden");
+  document.getElementById("filaPablo")?.classList.add("hidden");
+
+  // Mostra apenas a fila do barbeiro selecionado
+  const secao = document.getElementById(`fila${barbeiro}`);
+  if (secao) secao.classList.remove("hidden");
+}
+window.mostrarFilaBarbeiro = mostrarFilaBarbeiro;
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -30,124 +49,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ===== Locks de horário: liberar quando concluir/remover/nao_comprovado =====
-function slotKeyFromData(data){
-  if(!data) return null;
-  const b = (data.barbeiro||'').trim();
-  const d = (data.dataDia||'').trim();
-  const h = (data.horario||'').trim();
-  if(!b||!d||!h) return null;
-  return `${b}_${d}_${h}`.replace(/\s+/g,'');
-}
-async function releaseLockForData(data){
-  let removed = 0;
-  try{
-    if(!data) return 0;
-
-    const rawBarb = (data.barbeiro||'').trim();
-    const normBarb = (typeof normalizeBarberId === 'function' ? normalizeBarberId(rawBarb) : rawBarb) || '';
-    const barbVars = new Set([rawBarb, normBarb, rawBarb.toLowerCase(), normBarb.toLowerCase()].filter(Boolean));
-
-    const d = (data.dataDia||'').trim();
-    const h = (data.horario||'').trim();
-    const sepVariants = ['_', '-'];
-
-    const candidates = new Set();
-
-    // 0) lockId salvo no agendamento (preferencial)
-    if (data.lockId && typeof data.lockId === 'string') {
-      candidates.add(String(data.lockId).trim());
-      candidates.add(String(data.lockId).trim().toLowerCase());
-    }
-
-    // 1) Gerar combinações com separadores e variações de barbeiro
-    if (d && h) {
-      for (const b of barbVars){
-        for (const sep of sepVariants){
-          candidates.add(`${b}${sep}${d}${sep}${h}`);
-          candidates.add(`${b}${sep}${d}${sep}${h}`.replace(/\s+/g,''));
-          candidates.add(`${b}${sep}${d}${sep}${h}`.toLowerCase());
-          candidates.add(`${b}${sep}${d}${sep}${h}`.replace(/\s+/g,'').toLowerCase());
-        }
-      }
-    }
-
-    // 2) Também tente a versão sem separador (alguns códigos antigos)
-    if (d && h) {
-      for (const b of barbVars){
-        const noSep = `${b}${d}${h}`;
-        candidates.add(noSep);
-        candidates.add(noSep.toLowerCase());
-        candidates.add(noSep.replace(/\s+/g,''));
-        candidates.add(noSep.replace(/\s+/g,'').toLowerCase());
-      }
-    }
-
-    // Tenta deletar todas as candidatas
-    for (const key of candidates) {
-      if (!key) continue;
-      try {
-        await deleteDoc(doc(db, 'slot_locks', key));
-        removed++;
-      } catch(e){
-        // segue tentando as demais
-        // console.warn('Falha ao liberar lock com chave', key, e);
-      }
-    }
-  }catch(e){ console.warn('Falha geral ao liberar lock:', e); }
-  return removed;
-}
-
-// Fallback helper: apaga slot_locks por query quando IDs não batem
-async function forceReleaseByFields(barbeiro, dataDia, horario){
-  let removed = 0;
-  try{
-    const nb = typeof normalizeBarberId === 'function' ? normalizeBarberId(barbeiro) : (barbeiro||'');
-    if(!nb || !dataDia || !horario) return 0;
-    const qLocks = query(
-      collection(db, 'slot_locks'),
-      where('barbeiro','==', nb),
-      where('dataDia','==', dataDia),
-      where('horario','==', horario)
-    );
-    const snap = await getDocs(qLocks);
-    for(const d of snap.docs){
-      try{ await deleteDoc(d.ref); removed++; }catch(_){}
-    }
-  }catch(e){ console.warn('forceReleaseByFields falhou:', e); }
-  return removed;
-}
-
-// Fallback extra: libera por usuário (userId / userEmail) + dataDia/horario
-async function forceReleaseByUser(userId, userEmail, dataDia, horario){
-  let removed = 0;
-  try{
-    const qTasks = [];
-    if (userId) {
-      qTasks.push(query(
-        collection(db, 'slot_locks'),
-        where('userId','==', String(userId)),
-        where('dataDia','==', dataDia || ''),
-        where('horario','==', horario || '')
-      ));
-    }
-    if (userEmail) {
-      qTasks.push(query(
-        collection(db, 'slot_locks'),
-        where('userEmail','==', String(userEmail).toLowerCase()),
-        where('dataDia','==', dataDia || ''),
-        where('horario','==', horario || '')
-      ));
-    }
-    for (const ql of qTasks){
-      try{
-        const snap = await getDocs(ql);
-        for (const d of snap.docs){ try{ await deleteDoc(d.ref); removed++; }catch(_){} }
-      }catch(_){/* continua */}
-    }
-  }catch(e){ console.warn('forceReleaseByUser falhou:', e); }
-  return removed;
-}
 
 const auth = getAuth(app);
 
@@ -902,3 +803,14 @@ if (logoutBtn) {
       });
   });
 }
+
+
+// Fecha o menu automaticamente após clicar em qualquer botão do menu lateral
+const menuButtons = document.querySelectorAll('.sidebar button, .sidebar a');
+menuButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.body.classList.remove('menu-open');
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.classList.remove('active');
+  });
+});
