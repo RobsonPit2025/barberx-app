@@ -511,6 +511,83 @@ const cfgDate    = document.getElementById('cfgDate');
 const cfgLunchStart = document.getElementById('cfgLunchStart');
 const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
 
+// Função para exibir campos progressivamente na configuração de horários (NOVO FLUXO)
+function atualizarVisibilidadeCampos() {
+  // Helper para obter o contêiner apropriado do campo
+  const getEl = (el, divId) => {
+    if (!el) return null;
+    if (divId && document.getElementById(divId)) return document.getElementById(divId);
+    if (el.parentElement && el.parentElement.classList.contains("form-group")) return el.parentElement;
+    return el;
+  };
+
+  // Elementos ou contêineres dos campos
+  const elBarbeiro   = getEl(cfgBarbeiro, "cfgBarbeiroDiv");
+  const elOpen       = getEl(cfgOpen, "cfgOpenDiv");
+  const elStart      = getEl(cfgStart, "cfgStartDiv");
+  const elLunchStart = getEl(cfgLunchStart, "cfgLunchStartDiv");
+  const elLunchEnd   = getEl(cfgLunchEnd, "cfgLunchEndDiv");
+  const elEnd        = getEl(cfgEnd, "cfgEndDiv");
+  const elStep       = getEl(cfgStep, "cfgStepDiv");
+  const elBtnSalvar  = getEl(btnSalvar, "btnSalvarHorarioDiv");
+
+  // Sempre fecha todos os campos (menos barbeiro e status) no início
+  if (elStart)      elStart.classList.add('hidden');
+  if (elLunchStart) elLunchStart.classList.add('hidden');
+  if (elLunchEnd)   elLunchEnd.classList.add('hidden');
+  if (elEnd)        elEnd.classList.add('hidden');
+  if (elStep)       elStep.classList.add('hidden');
+  if (elBtnSalvar)  elBtnSalvar.classList.add('hidden');
+
+  // Etapa 1: apenas barbeiro e status visíveis inicialmente
+  if (elBarbeiro) elBarbeiro.classList.remove('hidden');
+  if (elOpen)     elOpen.classList.remove('hidden');
+
+  // Checagem consistente dos valores reais do select de status e barbeiro
+  const barbeiroSelecionado = cfgBarbeiro && cfgBarbeiro.value && cfgBarbeiro.value.trim() !== "";
+  const statusValue = cfgOpen ? cfgOpen.value : "";
+  const aberto = statusValue === "true";
+  const statusSelecionado = statusValue === "true" || statusValue === "false";
+  // Se status estiver fechado ou indefinido, esconde tudo imediatamente
+  if (!aberto || !statusSelecionado) {
+    // Garante que todos os campos (exceto barbeiro e status) estejam escondidos
+    if (elStart)      elStart.classList.add('hidden');
+    if (elLunchStart) elLunchStart.classList.add('hidden');
+    if (elLunchEnd)   elLunchEnd.classList.add('hidden');
+    if (elEnd)        elEnd.classList.add('hidden');
+    if (elStep)       elStep.classList.add('hidden');
+    if (elBtnSalvar)  elBtnSalvar.classList.add('hidden');
+    return;
+  }
+
+  // Somente se barbeiro selecionado E status = aberto, mostrar os próximos campos
+  if (barbeiroSelecionado && aberto) {
+    // Mostra início
+    if (elStart) elStart.classList.remove('hidden');
+    if (cfgStart && cfgStart.value) {
+      // Mostra almoço início
+      if (elLunchStart) elLunchStart.classList.remove('hidden');
+      if (cfgLunchStart && cfgLunchStart.value) {
+        // Mostra almoço fim
+        if (elLunchEnd) elLunchEnd.classList.remove('hidden');
+        if (cfgLunchEnd && cfgLunchEnd.value) {
+          // Mostra fim
+          if (elEnd) elEnd.classList.remove('hidden');
+          if (cfgEnd && cfgEnd.value) {
+            // Mostra intervalo
+            if (elStep) elStep.classList.remove('hidden');
+            const validStep = cfgStep && cfgStep.value && Number(cfgStep.value) > 0;
+            if (validStep) {
+              // Mostra botão salvar
+              if (elBtnSalvar) elBtnSalvar.classList.remove('hidden');
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 // --- UI extra: seleção de almoço por clique na pré-visualização + botão limpar ---
 const cfgPreviewEl = document.getElementById('cfgPreview');
 
@@ -629,12 +706,15 @@ async function loadScheduleToUI(barberId) {
     cfgStart.value = data.slotStart || '09:30';
     cfgEnd.value   = data.slotEnd   || '19:00';
     cfgStep.value  = String(data.slotStep || 35);
-    cfgOpen.value  = String(Boolean(data.open));
+    // Sempre define o valor real do status do barbeiro selecionado
+    cfgOpen.value = String(Boolean(data.open));
     if (cfgLunchStart) cfgLunchStart.value = data.lunchStart || '';
     if (cfgLunchEnd)   cfgLunchEnd.value   = data.lunchEnd   || '';
   } catch (e) {
     console.warn('Não foi possível carregar configuração de horário:', e);
   }
+  // Garante atualização da visibilidade após carregar os dados do barbeiro
+  atualizarVisibilidadeCampos();
 }
 
 async function renderSchedulePreview(){
@@ -740,13 +820,25 @@ if (cfgBarbeiro) {
   // carrega inicialmente
   loadScheduleToUI(cfgBarbeiro.value);
   renderSchedulePreview();
+  // Atualiza visibilidade inicial após carregar dados e preview
+  // (Agora loadScheduleToUI já chama atualizarVisibilidadeCampos)
   // ao trocar barbeiro
   cfgBarbeiro.addEventListener('change', () => {
     loadScheduleToUI(cfgBarbeiro.value);
     renderSchedulePreview();
+    // atualizarVisibilidadeCampos será chamada no final de loadScheduleToUI
   });
-  [cfgStart,cfgEnd,cfgStep,cfgOpen].forEach(el=>{
-    if(el) el.addEventListener('change', ()=> renderSchedulePreview());
+  // Listener para o campo de status (aberto/fechado)
+  if (cfgOpen) {
+    cfgOpen.addEventListener('change', () => {
+      atualizarVisibilidadeCampos();
+    });
+  }
+  [cfgStart, cfgLunchStart, cfgLunchEnd, cfgEnd, cfgStep].forEach(el => {
+    if (el) el.addEventListener('change', () => {
+      renderSchedulePreview();
+      atualizarVisibilidadeCampos();
+    });
   });
   if (cfgDate) {
     if (!cfgDate.value) cfgDate.value = todayISO();

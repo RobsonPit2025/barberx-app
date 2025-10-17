@@ -71,23 +71,31 @@
         <option value="Pablo">Pablo</option>
       </select>
 
-      <div class="grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;">
+      <div id="cfgStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgStart">Início</label>
           <input id="cfgStart" type="time" value="09:30">
         </div>
+      </div>
+      <div id="cfgEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgEnd">Fim</label>
           <input id="cfgEnd" type="time" value="19:00">
         </div>
+      </div>
+      <div id="cfgLunchStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgLunchStart">Início do almoço</label>
           <input id="cfgLunchStart" type="time" placeholder="12:00">
         </div>
+      </div>
+      <div id="cfgLunchEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgLunchEnd">Fim do almoço</label>
           <input id="cfgLunchEnd" type="time" placeholder="13:00">
         </div>
+      </div>
+      <div id="cfgStepDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgStep">Intervalo</label>
           <select id="cfgStep">
@@ -100,6 +108,8 @@
             <option value="60">60 min</option>
           </select>
         </div>
+      </div>
+      <div id="cfgOpenDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div>
           <label for="cfgOpen">Status</label>
           <select id="cfgOpen">
@@ -108,12 +118,9 @@
           </select>
         </div>
       </div>
-      <div style="margin:10px 0 6px; display:flex; gap:8px; align-items:center;">
-        <strong>Pré-visualização de hoje</strong>
-      </div>
-      <div id="cfgPreview" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:8px; margin-bottom:10px;"></div>
+      <div id="cfgPreview" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:8px; margin-bottom:10px;" class="hidden"></div>
 
-      <button id="btnSalvarHorario">Salvar configurações</button>
+      <button id="btnSalvarHorario" class="hidden">Salvar configurações</button>
       <p class="hint">Essas configurações definem a grade visível para clientes ao escolherem este barbeiro.</p>
     </section>
 
