@@ -62,12 +62,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ===== PIX por barbeiro =====
   const PIX_BY_BARBER = {
-    Yuri: "71981218562",
+    Yure: "71981218562",
     Pablo: "71981879989"
   };
   function normalizeBarberId(v){
     const s = (v || '').toString().toLowerCase();
-    if (s.includes('yure') || s.includes('yuri')) return 'Yuri';
+    if (s.includes('yure') || s.includes('yure')) return 'Yure';
     if (s.includes('pablo')) return 'Pablo';
     return v;
   }
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function(){
   async function getScheduleForBarber(barberId) {
     if (!barberId) return null;
     const id = normalizeBarberId(barberId);
-    let scheduleDocId = id === 'Yuri' ? 'schedule_Yuri' : (id === 'Pablo' ? 'schedule_Pablo' : null);
+    let scheduleDocId = id === 'Yure' ? 'schedule_Yure' : (id === 'Pablo' ? 'schedule_Pablo' : null);
     if (!scheduleDocId) return null;
 
     const db = getFirestore();

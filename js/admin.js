@@ -17,22 +17,96 @@ function mostrarSecao(id) {
 
   // Se for o painel de fila, esconde as filas até escolher o barbeiro
   if (id === "fila") {
-    document.getElementById("filaYuri")?.classList.add("hidden");
+    document.getElementById("filaYure")?.classList.add("hidden");
     document.getElementById("filaPablo")?.classList.add("hidden");
   }
 }
 // Torna a função acessível no HTML
 window.mostrarSecao = mostrarSecao;
 
-// Função para mostrar a fila do barbeiro selecionado
 function mostrarFilaBarbeiro(barbeiro) {
+  // Remove classe 'aberta' de todas as filas antes de esconder
+  document.querySelectorAll('.painel-fila').forEach(el => el.classList.remove('aberta'));
   // Esconde todas as filas
-  document.getElementById("filaYuri")?.classList.add("hidden");
+  document.getElementById("filaYure")?.classList.add("hidden");
   document.getElementById("filaPablo")?.classList.add("hidden");
 
   // Mostra apenas a fila do barbeiro selecionado
   const secao = document.getElementById(`fila${barbeiro}`);
-  if (secao) secao.classList.remove("hidden");
+  if (!secao) return;
+  secao.classList.remove("hidden");
+  secao.classList.add("aberta");
+
+  // Define o container correto
+  const container =
+    barbeiro === "Yure"
+      ? document.getElementById("agendamentosYure")
+      : document.getElementById("agendamentosPablo");
+
+  if (!container) return;
+
+  // Limpa o conteúdo anterior
+  container.innerHTML = "<p>Carregando agendamentos...</p>";
+
+  // Busca em tempo real os agendamentos desse barbeiro
+  const q = query(
+    collection(db, "agendamentos"),
+    where("barbeiro", "==", barbeiro)
+  );
+
+  // Cancela listeners anteriores se existirem
+  if (window.unsubscribeFilaAtual) {
+    try {
+      window.unsubscribeFilaAtual();
+    } catch (e) {}
+  }
+
+  window.unsubscribeFilaAtual = onSnapshot(
+    q,
+    (snapshot) => {
+      container.innerHTML = "";
+
+      if (snapshot.empty) {
+        container.innerHTML =
+          "<p>Nenhum agendamento encontrado para este barbeiro.</p>";
+        return;
+      }
+
+      const docsOrdenados = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter(
+          (d) => d.status === "pendente" || d.status === "aguardando_pagamento"
+        )
+        .sort((a, b) => {
+          const t1 = scheduleTsFromData(a);
+          const t2 = scheduleTsFromData(b);
+          return t1 - t2;
+        });
+
+      if (docsOrdenados.length === 0) {
+        container.innerHTML =
+          "<p>Nenhum agendamento pendente para este barbeiro.</p>";
+        return;
+      }
+
+      docsOrdenados.forEach((data, index) => {
+        if (data.status === "pendente") {
+          data.posicao = index + 1;
+        } else {
+          data.posicao = null;
+        }
+        data.horarioFormatado = new Date(
+          data.criadoEm?.seconds * 1000 || Date.now()
+        ).toLocaleTimeString("pt-BR", { hour12: false });
+        renderAgendamento(data, container, data.id);
+      });
+    },
+    (error) => {
+      console.error("Erro ao carregar agendamentos:", error);
+      container.innerHTML =
+        "<p>Erro ao carregar agendamentos. Verifique o console.</p>";
+    }
+  );
 }
 window.mostrarFilaBarbeiro = mostrarFilaBarbeiro;
 
@@ -138,7 +212,7 @@ if (toggleBookingsEl || statusPillEl) {
 // ===== FIM do Controle Aberto/Fechado =====
 
 // Mostrar agendamentos
-const containerYuri = document.getElementById("agendamentosYuri");
+const containerYure = document.getElementById("agendamentosYure");
 const containerPablo = document.getElementById("agendamentosPablo");
 
 function renderAgendamento(dados, container, id) {
@@ -323,7 +397,7 @@ function renderAgendamento(dados, container, id) {
   }
 }
 
-const qYuri = query(collection(db, "agendamentos"), where("barbeiro", "==", "Yuri"));
+const qYure = query(collection(db, "agendamentos"), where("barbeiro", "==", "Yure"));
 const qPablo = query(collection(db, "agendamentos"), where("barbeiro", "==", "Pablo"));
 
 // Timestamp de ordenação baseado no horário AGENDADO (dataDia + horario)
@@ -348,49 +422,97 @@ function scheduleTsFromData(data){
   return 0;
 }
 
-// Gerar relatório mensal
-function gerarRelatorio(snapshot) {
-  const resumo = {};
+// Novo relatório detalhado com filtros de mês e dia
+async function gerarRelatorioDetalhado() {
+  const relatorioContainer = document.getElementById("relatorioContainer");
+  if (!relatorioContainer) return;
 
-  snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-    const barbeiro = data.barbeiro?.toLowerCase();
-    const dataObj = new Date(data.data);
-    const mesAno = `${dataObj.getMonth() + 1}/${dataObj.getFullYear()}`;
-
-    if (!resumo[mesAno]) {
-      resumo[mesAno] = { yuri: 0, pablo: 0 };
-    }
-
-    if (barbeiro === "yuri") {
-      resumo[mesAno].yuri++;
-    } else if (barbeiro === "pablo") {
-      resumo[mesAno].pablo++;
-    }
-  });
-
-  const tbody = document.querySelector("#tabelaRelatorio tbody");
-  tbody.innerHTML = "";
-
-  Object.entries(resumo).forEach(([mesAno, dados]) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${mesAno}</td>
-      <td>${dados.yuri}</td>
-      <td>${dados.pablo}</td>
+  // Cria o seletor de mês e dia se ainda não existir
+  if (!document.getElementById("filtroMes")) {
+    relatorioContainer.innerHTML = `
+      <div style="margin-bottom: 10px;">
+        <label>Mês:</label>
+        <input type="month" id="filtroMes" style="margin-right: 10px;">
+        <label>Dia:</label>
+        <input type="date" id="filtroDia" style="margin-right: 10px;">
+        <button id="btnFiltrarRelatorio">Filtrar</button>
+      </div>
+      <table class="tabela-relatorio-detalhado">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Cliente</th>
+            <th>Barbeiro</th>
+            <th>Valor Pago</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaRelatorioDetalhado"></tbody>
+      </table>
     `;
-    tbody.appendChild(tr);
+  }
+
+  const btn = document.getElementById("btnFiltrarRelatorio");
+  btn.addEventListener("click", async () => {
+    const mesSelecionado = document.getElementById("filtroMes").value;
+    const diaSelecionado = document.getElementById("filtroDia").value;
+    const tbody = document.getElementById("tabelaRelatorioDetalhado");
+    tbody.innerHTML = "<tr><td colspan='4'>Carregando...</td></tr>";
+
+    try {
+      let q = collection(db, "relatorios");
+      let snapshot = await getDocs(q);
+      let dados = snapshot.docs.map(doc => doc.data()).filter(item => item.status === "concluido");
+
+      // Filtra por mês e dia
+      if (mesSelecionado) {
+        const [ano, mes] = mesSelecionado.split("-");
+        dados = dados.filter(item => {
+          const data = new Date(item.createdAt?.seconds * 1000);
+          return data.getFullYear() == ano && (data.getMonth() + 1) == mes;
+        });
+      }
+
+      if (diaSelecionado) {
+        dados = dados.filter(item => {
+          const data = new Date(item.createdAt?.seconds * 1000);
+          const diaISO = data.toISOString().split("T")[0];
+          return diaISO === diaSelecionado;
+        });
+      }
+
+      // Atualiza tabela
+      tbody.innerHTML = "";
+      if (dados.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='4'>Nenhum corte encontrado nesse período.</td></tr>";
+        return;
+      }
+
+      dados.forEach(item => {
+        const data = new Date(item.createdAt?.seconds * 1000);
+        const dataFormatada = data.toLocaleDateString("pt-BR");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${dataFormatada}</td>
+          <td>${item.nome || "-"}</td>
+          <td>${item.barbeiro || "-"}</td>
+          <td>R$ ${(item.amount || 0).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      console.error("Erro ao gerar relatório detalhado:", e);
+    }
   });
 }
 
 // ===== Assinaturas condicionais após autenticação =====
-let unsubscribeYuri = null;
+let unsubscribeYure = null;
 let unsubscribePablo = null;
 let unsubscribeRelatorios = null;
 
 onAuthStateChanged(auth, (user) => {
   // Cancela assinaturas anteriores
-  if (unsubscribeYuri) { try { unsubscribeYuri(); } catch(e) {} unsubscribeYuri = null; }
+  if (unsubscribeYure) { try { unsubscribeYure(); } catch(e) {} unsubscribeYure = null; }
   if (unsubscribePablo) { try { unsubscribePablo(); } catch(e) {} unsubscribePablo = null; }
   if (unsubscribeRelatorios) { try { unsubscribeRelatorios(); } catch(e) {} unsubscribeRelatorios = null; }
 
@@ -407,8 +529,8 @@ onAuthStateChanged(auth, (user) => {
   }
 
   // Usuário logado pode ler agendamentos (rules exigem request.auth != null)
-  unsubscribeYuri = onSnapshot(qYuri, (snapshot) => {
-    containerYuri.innerHTML = "";
+  unsubscribeYure = onSnapshot(qYure, (snapshot) => {
+    containerYure.innerHTML = "";
 
     // separa por status
     const pendentes = [];
@@ -430,7 +552,7 @@ onAuthStateChanged(auth, (user) => {
       const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
       data.posicao = index + 1; // só pendentes entram na fila
       data.horarioFormatado = horarioFormatado;
-      renderAgendamento(data, containerYuri, docSnap.id);
+      renderAgendamento(data, containerYure, docSnap.id);
     });
 
     // depois renderiza aguardando_pagamento SEM posição
@@ -444,7 +566,7 @@ onAuthStateChanged(auth, (user) => {
       const horarioFormatado = horarioCompleto.toLocaleTimeString("pt-BR", { hour12: false }) + '.' + (data.criadoEm?.nanoseconds || '000000000');
       data.posicao = null; // não exibe número na fila
       data.horarioFormatado = horarioFormatado;
-      renderAgendamento(data, containerYuri, docSnap.id);
+      renderAgendamento(data, containerYure, docSnap.id);
     });
   });
 
@@ -489,14 +611,14 @@ onAuthStateChanged(auth, (user) => {
     });
   });
 
-  // Somente ADMIN assina relatórios e garante criação do settings/app se necessário
+  // Somente ADMIN ativa relatório detalhado e garante criação do settings/app se necessário
   if (isAdminUser) {
-    // garante criação do doc settings/app somente quando admin logado
     ensureSettingsDoc().catch(console.error);
-    unsubscribeRelatorios = onSnapshot(collection(db, "relatorios"), gerarRelatorio);
+    gerarRelatorioDetalhado();
   } else {
-    const tbody = document.querySelector("#tabelaRelatorio tbody");
-    if (tbody) tbody.innerHTML = "";
+    // Se não for admin, pode limpar o relatório se desejar (ajustar conforme necessário)
+    const relatorioContainer = document.getElementById("relatorioContainer");
+    if (relatorioContainer) relatorioContainer.innerHTML = "";
   }
 });
 // ===== FIM das assinaturas condicionais =====
@@ -592,6 +714,7 @@ function atualizarVisibilidadeCampos() {
   }
 }
 
+
 // --- UI extra: seleção de almoço por clique na pré-visualização + botão limpar ---
 const cfgPreviewEl = document.getElementById('cfgPreview');
 
@@ -656,7 +779,7 @@ if (cfgPreviewEl) {
 function normalizeBarberId(v){
   if(!v) return '';
   const s = String(v).toLowerCase();
-  if (s.includes('yuri')) return 'Yuri';
+  if (s.includes('yure')) return 'Yure';
   if (s.includes('pablo')) return 'Pablo';
   return v;
 }

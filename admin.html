@@ -44,59 +44,72 @@
       </h1>
       <p id="fraseMotivacional" class="motivacional"></p>
 
-      <div class="fila">
-        <div class="card-fila">
+      <div class="filas-container">
+        <div class="fila-barbeiro" id="yureCard">
           <h3>Yure</h3>
           <button onclick="mostrarFilaBarbeiro('Yure')">Ver fila</button>
         </div>
-        <div class="card-fila">
+        <div class="fila-barbeiro" id="pabloCard">
           <h3>Pablo</h3>
           <button onclick="mostrarFilaBarbeiro('Pablo')">Ver fila</button>
         </div>
       </div>
     </section>
 
-    <section id="filaBarbeiro" class="painel hidden">
-      <h2 id="tituloFila"></h2>
-      <div id="listaAgendamentos"></div>
+    <!-- Fila dos barbeiros -->
+    <section id="filaYure" class="painel hidden">
+      <h2>Fila do Yure</h2>
+      <div id="agendamentosYure"></div>
+    </section>
+
+    <section id="filaPablo" class="painel hidden">
+      <h2>Fila do Pablo</h2>
+      <div id="agendamentosPablo"></div>
     </section>
 
     <!-- Configuração de Horários -->
     <section id="config" class="painel hidden">
       <h2>Configuração de horários</h2>
 
-      <label for="cfgBarbeiro">Barbeiro</label>
-      <select id="cfgBarbeiro">
-        <option value="Yure">Yure</option>
-        <option value="Pablo">Pablo</option>
-      </select>
+      <div class="config-group">
+        <label for="cfgBarbeiro">Barbeiro</label>
+        <select id="cfgBarbeiro">
+          <option value="Yure">Yure</option>
+          <option value="Pablo">Pablo</option>
+        </select>
+        <p class="hint">Escolha o barbeiro que deseja configurar.</p>
+      </div>
 
       <div id="cfgStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgStart">Início</label>
           <input id="cfgStart" type="time" value="09:30">
+          <p class="hint">Defina o horário de início do expediente.</p>
         </div>
       </div>
       <div id="cfgEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgEnd">Fim</label>
           <input id="cfgEnd" type="time" value="19:00">
+          <p class="hint">Informe o horário de encerramento do expediente.</p>
         </div>
       </div>
       <div id="cfgLunchStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgLunchStart">Início do almoço</label>
           <input id="cfgLunchStart" type="time" placeholder="12:00">
+          <p class="hint">Defina o horário de início do almoço.</p>
         </div>
       </div>
       <div id="cfgLunchEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgLunchEnd">Fim do almoço</label>
           <input id="cfgLunchEnd" type="time" placeholder="13:00">
+          <p class="hint">Defina o horário de término do almoço.</p>
         </div>
       </div>
       <div id="cfgStepDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgStep">Intervalo</label>
           <select id="cfgStep">
             <option value="30">30 min</option>
@@ -107,15 +120,17 @@
             <option value="55">55 min</option>
             <option value="60">60 min</option>
           </select>
+          <p class="hint">Selecione o intervalo entre atendimentos.</p>
         </div>
       </div>
       <div id="cfgOpenDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div>
+        <div class="config-group">
           <label for="cfgOpen">Status</label>
           <select id="cfgOpen">
             <option value="true" selected>Aberto</option>
             <option value="false">Fechado</option>
           </select>
+          <p class="hint">Defina se o barbeiro está aberto para novos agendamentos.</p>
         </div>
       </div>
       <div id="cfgPreview" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:8px; margin-bottom:10px;" class="hidden"></div>
@@ -126,17 +141,49 @@
 
     <!-- Relatório -->
     <section id="relatorio" class="painel hidden">
-      <h2>Relatório Mensal</h2>
-      <table id="tabelaRelatorio">
-        <thead>
-          <tr>
-            <th>Mês</th>
-            <th>Yure</th>
-            <th>Pablo</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <h2>Relatório de Agendamentos</h2>
+
+      <div class="filtros-relatorio" style="display: flex; flex-direction: column; gap: 10px; max-width: 300px; margin-bottom: 15px;">
+        <label for="relatorioMes">Selecione o mês:</label>
+        <select id="relatorioMes">
+          <option value="">-- Escolha o mês --</option>
+          <option value="01">Janeiro</option>
+          <option value="02">Fevereiro</option>
+          <option value="03">Março</option>
+          <option value="04">Abril</option>
+          <option value="05">Maio</option>
+          <option value="06">Junho</option>
+          <option value="07">Julho</option>
+          <option value="08">Agosto</option>
+          <option value="09">Setembro</option>
+          <option value="10">Outubro</option>
+          <option value="11">Novembro</option>
+          <option value="12">Dezembro</option>
+        </select>
+
+        <label for="relatorioDia">Selecione o dia:</label>
+        <select id="relatorioDia">
+          <option value="">-- Escolha o dia --</option>
+        </select>
+
+        <button id="btnFiltrarRelatorio">Filtrar</button>
+      </div>
+
+      <div id="resultadoRelatorio" style="margin-top: 15px;">
+        <table id="tabelaRelatorioDetalhado" border="1" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Cliente</th>
+              <th>Barbeiro</th>
+              <th>Valor Pago (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" style="text-align: center;">Nenhum resultado</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </div>
