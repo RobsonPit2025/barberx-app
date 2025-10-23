@@ -843,6 +843,14 @@ async function loadScheduleToUI(barberId) {
     barberStatusCache[barber] = data.open;
     if (cfgLunchStart) cfgLunchStart.value = data.lunchStart || '';
     if (cfgLunchEnd)   cfgLunchEnd.value   = data.lunchEnd   || '';
+
+    // Garante que os campos de almoço existam no Firestore
+    if (!('lunchStart' in data) || !('lunchEnd' in data)) {
+      await setDoc(doc(db, 'settings', id), {
+        lunchStart: data.lunchStart || '',
+        lunchEnd: data.lunchEnd || ''
+      }, { merge: true });
+    }
   } catch (e) {
     console.warn('Não foi possível carregar configuração de horário:', e);
   }

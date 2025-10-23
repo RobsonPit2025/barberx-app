@@ -133,25 +133,84 @@ table tr:hover {
 }
 
 /* === Botões de ação === */
+/* === Botões de ação modernos === */
 .btn-concluir,
 .btn-confirmar-pix,
 .btn-nao-comprovado,
 .btn-remover {
-  background-color: #d9534f;
-  color: white;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
   border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
+  border-radius: 8px;
+  padding: 8px 18px 8px 16px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.11);
+  transition: 
+    background 0.2s, 
+    box-shadow 0.18s, 
+    transform 0.18s;
+  overflow: hidden;
+}
+
+.btn-concluir {
+  background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+}
+.btn-concluir::before {
+  content: "✔️";
+  font-size: 1.1em;
+  margin-right: 0.5em;
+}
+
+.btn-confirmar-pix {
+  background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+}
+.btn-confirmar-pix::before {
+  content: "💸";
+  font-size: 1.1em;
+  margin-right: 0.5em;
+}
+
+.btn-nao-comprovado {
+  background: linear-gradient(90deg, #fde68a 0%, #f59e42 100%);
+  color: #7a4b00;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.09);
+}
+.btn-nao-comprovado::before {
+  content: "⚠️";
+  font-size: 1.1em;
+  margin-right: 0.5em;
+}
+
+.btn-remover {
+  background: linear-gradient(90deg, #fb7185 0%, #ef4444 100%);
+}
+.btn-remover::before {
+  content: "🗑️";
+  font-size: 1.1em;
+  margin-right: 0.5em;
 }
 
 .btn-concluir:hover,
 .btn-confirmar-pix:hover,
 .btn-nao-comprovado:hover,
 .btn-remover:hover {
-  background-color: #c9302c;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+  filter: brightness(1.07);
+}
+
+.btn-concluir:active,
+.btn-confirmar-pix:active,
+.btn-nao-comprovado:active,
+.btn-remover:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.11);
+  filter: brightness(0.96);
 }
 
 /* === Layout Responsivo === */
@@ -220,15 +279,19 @@ table tr:hover {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
   }
 
   .fila-barbeiro {
-    flex: 1 1 45%;
-    max-width: 45%;
-    min-width: 150px;
+    flex: 0 0 70%;
+    max-width: 70%;
+    scroll-snap-align: center;
   }
 }
 /* === Controle de visibilidade das seções === */
@@ -364,3 +427,10 @@ body.menu-open {
     opacity: 1;
   }
 }
+
+.toggle { display:inline-flex; align-items:center; gap:.5rem; font-weight:600; }
+.status-pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.85rem; margin-left:.5rem; }
+.status-pill.open { background:#e6ffed; border:1px solid #34c759; color:#245c2a; }
+.status-pill.closed { background:#ffecec; border:1px solid #ff3b30; color:#7d1d1a; }
+.sidebar .system-status { margin-top:.75rem; padding:.5rem; border-top:1px solid #e0e0e0; }
+.sidebar .hint { display:block; font-size:.75rem; color:#666; margin-top:.25rem; }
