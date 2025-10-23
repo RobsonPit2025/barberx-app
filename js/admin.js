@@ -858,15 +858,20 @@ async function loadScheduleToUI(barberId) {
   atualizarVisibilidadeCampos();
 }
 
+// Refatoração: renderSchedulePreview carrega os dados atuais do barbeiro antes de renderizar,
+// e usa lunchStart/lunchEnd específicos de cada barbeiro.
 async function renderSchedulePreview(){
   const box = document.getElementById('cfgPreview');
   if(!box) return;
   const barber = normalizeBarberId(cfgBarbeiro?.value||'');
-  // carrega config atual exibida na UI
+  // Removido o carregamento automático do Firestore para não sobrescrever os valores recém-definidos
+
+  // Após loadScheduleToUI, os valores dos inputs já estão atualizados para o barbeiro correto.
   const open = (cfgOpen?.value === 'true');
   const start = cfgStart?.value || '09:30';
   const end   = cfgEnd?.value   || '19:00';
   const step  = Number(cfgStep?.value || 35);
+  // lunchStart/lunchEnd agora são lidos dos inputs, que foram atualizados para o barbeiro correto
   const lunchStart = (cfgLunchStart?.value || '').trim();
   const lunchEnd   = (cfgLunchEnd?.value || '').trim();
 
@@ -902,7 +907,7 @@ async function renderSchedulePreview(){
     }
   }
 
-  // marca almoço como ocupado
+  // Marca almoço como ocupado baseado nos inputs do barbeiro selecionado
   const almoco = new Set();
   if (lunchStart && lunchEnd) {
     const ls = toMinutes(lunchStart);
@@ -958,15 +963,15 @@ async function renderSchedulePreview(){
 }
 
 if (cfgBarbeiro) {
-  // carrega inicialmente
-  loadScheduleToUI(cfgBarbeiro.value);
-  renderSchedulePreview();
-  // Atualiza visibilidade inicial após carregar dados e preview
-  // (Agora loadScheduleToUI já chama atualizarVisibilidadeCampos)
+  // carrega inicialmente e renderiza preview após garantir config correta do barbeiro
+  (async () => {
+    await loadScheduleToUI(cfgBarbeiro.value);
+    await renderSchedulePreview();
+  })();
   // ao trocar barbeiro
-  cfgBarbeiro.addEventListener('change', () => {
-    loadScheduleToUI(cfgBarbeiro.value);
-    renderSchedulePreview();
+  cfgBarbeiro.addEventListener('change', async () => {
+    await loadScheduleToUI(cfgBarbeiro.value);
+    await renderSchedulePreview();
     // atualizarVisibilidadeCampos será chamada no final de loadScheduleToUI
   });
   // Listener para o campo de status (aberto/fechado) com gravação automática no Firestore
@@ -988,14 +993,14 @@ if (cfgBarbeiro) {
     });
   }
   [cfgStart, cfgLunchStart, cfgLunchEnd, cfgEnd, cfgStep].forEach(el => {
-    if (el) el.addEventListener('change', () => {
-      renderSchedulePreview();
+    if (el) el.addEventListener('change', async () => {
+      await renderSchedulePreview();
       atualizarVisibilidadeCampos();
     });
   });
   if (cfgDate) {
     if (!cfgDate.value) cfgDate.value = todayISO();
-    cfgDate.addEventListener('change', ()=> renderSchedulePreview());
+    cfgDate.addEventListener('change', async ()=> await renderSchedulePreview());
   }
 }
 
@@ -1020,7 +1025,7 @@ if (btnSalvar) {
         lunchEnd:   (cfgLunchEnd?.value   || '').trim() || null
       }, { merge: true });
       alert('Configuração de horários salva!');
-      renderSchedulePreview();
+      await renderSchedulePreview();
     } catch (e) {
       console.error('Erro ao salvar configuração de horário:', e);
       alert('Não foi possível salvar agora.');

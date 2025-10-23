@@ -218,15 +218,10 @@ document.addEventListener('DOMContentLoaded', function(){
   async function getScheduleForBarber(barberId) {
     if (!barberId) return null;
     const id = normalizeBarberId(barberId);
-    let scheduleDocId = id === 'Yure' ? 'schedule_Yure' : (id === 'Pablo' ? 'schedule_Pablo' : null);
-    if (!scheduleDocId) return null;
-
     const db = getFirestore();
-
-    // usa doc canônico
-    let snap = await getDoc(doc(db, 'settings', scheduleDocId));
+    const scheduleDocId = `schedule_${id.toLowerCase()}`;
+    const snap = await getDoc(doc(db, 'settings', scheduleDocId));
     if (snap.exists()) return snap.data();
-
     // fallback padrão caso ainda não tenha sido configurado no admin
     return { open: true, slotStart: '09:30', slotEnd: '19:00', slotStep: 35 };
   }
