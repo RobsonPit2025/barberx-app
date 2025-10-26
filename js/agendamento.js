@@ -1,6 +1,69 @@
 import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, getDocs, query, where, runTransaction } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+// ===== Firebase Cloud Messaging (FCM) =====
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js";
+
+// Inicializa o FCM e registra o Service Worker
+async function initFirebaseMessaging() {
+  try {
+    const messaging = getMessaging();
+
+    // Registra o Service Worker do FCM (precisa estar na raiz pública)
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('Service Worker registrado:', registration);
+
+    // Solicita permissão de notificação ao usuário
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Permissão de notificação negada.');
+      return;
+    }
+
+    // Substitua pela sua chave pública VAPID do Firebase Cloud Messaging
+    const vapidKey = 'BB_cb-xc9ySfW6jxl6xbVbwjPN1rQTJ8KIbNX8IDLz_bJPAhHoBuaqAjYqvhPIlZpL4f5oWkukM3tAEy3ekicck';
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+
+    if (token) {
+      console.log('Token FCM obtido:', token);
+      // Salva o token no Firestore vinculado ao usuário logado
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        const db = getFirestore();
+        await setDoc(doc(db, 'user_tokens', user.uid), {
+          token,
+          updatedAt: serverTimestamp()
+        });
+        console.log('Token salvo no Firestore com sucesso!');
+      } else {
+        console.warn('Usuário não autenticado, token não salvo.');
+      }
+    } else {
+      console.warn('Não foi possível obter token FCM.');
+    }
+
+    // Listener para mensagens recebidas enquanto o app está aberto
+    onMessage(messaging, (payload) => {
+      console.log('Mensagem recebida em foreground:', payload);
+      const notification = payload.notification;
+      if (notification) {
+        new Notification(notification.title || 'Notificação', {
+          body: notification.body || '',
+          icon: notification.icon || '/icons/icon-192.png'
+        });
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao inicializar FCM:', err);
+  }
+}
+
+// Inicia o FCM quando o DOM estiver pronto
+if ('serviceWorker' in navigator && 'Notification' in window) {
+  document.addEventListener('DOMContentLoaded', initFirebaseMessaging);
+}
+
 // ===== VIP: O recurso de VIP é implementado apenas no lado do cliente (browser) para facilitar upgrades e testes rápidos. =====
 
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====

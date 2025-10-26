@@ -803,24 +803,31 @@ function toHHMM(mins){
   const h=Math.floor(mins/60), m=mins%60;
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
 }
-function generateSlots(start,end,step){
+function generateSlots(start, end, step) {
   const out = [];
   const inc = Number(step || 35);
   if (!inc || inc <= 0) return out;
 
   const s = toMinutes(start);
-  const e = toMinutes(end);
-  const MIN_IN_DAY = 24 * 60; // 1440
+  let e = toMinutes(end);
+  const MIN_IN_DAY = 24 * 60; // 1440 minutos
 
-  if (s <= e) {
-    // janela no mesmo dia
-    for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
-  } else {
-    // janela atravessa a meia-noite (ex.: 21:00 -> 03:00)
+  // Se o barbeiro escolher 00:00 como fim, considera como 24:00 (meia-noite do mesmo dia)
+  if (e === 0 && start !== "00:00") e = MIN_IN_DAY;
+
+  // Caso o fim seja menor que o início, significa que cruza a meia-noite
+  if (e < s) {
     for (let t = s; t < MIN_IN_DAY; t += inc) out.push(toHHMM(t));
     for (let t = 0; t <= e; t += inc) out.push(toHHMM(t));
+  } else {
+    for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
   }
-  return out;
+
+  // Garante que os horários fiquem dentro de 00:00–23:59 (sem duplicação)
+  return Array.from(new Set(out.filter(h => {
+    const [hh, mm] = h.split(":").map(Number);
+    return hh >= 0 && hh < 24 && mm >= 0 && mm < 60;
+  })));
 }
 
 async function loadScheduleToUI(barberId) {
