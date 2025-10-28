@@ -1,5 +1,3 @@
-
-
 // firebase-messaging-sw.js
 // Service worker para receber notificações FCM em background
 importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
@@ -7,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-comp
 
 // Inicialize apenas com o senderId do seu projeto Firebase
 firebase.initializeApp({
-  messagingSenderId: "YOUR_SENDER_ID" // substitua pelo seu messagingSenderId do firebaseConfig
+  messagingSenderId: "275897396550" // substitua pelo seu messagingSenderId do firebaseConfig
 });
 
 const messaging = firebase.messaging();
