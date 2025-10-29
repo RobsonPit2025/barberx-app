@@ -7,32 +7,73 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 // FCM token cache para uso após submit
 let fcmClientToken = null;
 let fcmMessagingInstance = null;
+let fcmServiceWorkerRegistration = null;
+let fcmInitDone = false;
 
-// Inicializa o FCM e registra o Service Worker
+/**
+ * Inicializa o FCM, registra o Service Worker e configura listeners de mensagem.
+ * Chame apenas uma vez por sessão.
+ */
 async function initFirebaseMessaging() {
+  if (fcmInitDone) return;
+  fcmInitDone = true;
   try {
     const messaging = getMessaging();
     fcmMessagingInstance = messaging;
 
     // Registra o Service Worker do FCM (precisa estar na raiz pública)
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('Service Worker registrado:', registration);
+    fcmServiceWorkerRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('[FCM] Service Worker registrado:', fcmServiceWorkerRegistration);
 
     // Solicita permissão de notificação ao usuário
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      console.warn('Permissão de notificação negada.');
+      console.warn('[FCM] Permissão de notificação negada.');
       return;
     }
 
+    // Listener para mensagens recebidas enquanto o app está aberto
+    onMessage(messaging, (payload) => {
+      console.log('[FCM] Mensagem recebida em foreground:', payload);
+      const notification = payload.notification;
+      if (notification) {
+        // Exibição visual simples (alerta) além da Notification API
+        alert((notification.title || 'Notificação') + '\n\n' + (notification.body || ''));
+        new Notification(notification.title || 'Notificação', {
+          body: notification.body || '',
+          icon: notification.icon || '/icons/icon-192.png'
+        });
+      }
+    });
+
+    // Após permissão, tenta obter e salvar o token imediatamente
+    await refreshAndSaveFcmToken();
+  } catch (err) {
+    console.error('[FCM] Erro ao inicializar:', err);
+  }
+}
+
+/**
+ * Obtém o token FCM, salva no Firestore se autenticado e atualiza cache.
+ * Chame após login ou quando quiser garantir o token atualizado.
+ */
+async function refreshAndSaveFcmToken() {
+  try {
+    if (!fcmMessagingInstance || !fcmServiceWorkerRegistration) {
+      console.warn('[FCM] Messaging ou Service Worker não inicializado.');
+      return;
+    }
     // Substitua pela sua chave pública VAPID do Firebase Cloud Messaging
     const vapidKey = 'BB_cb-xc9ySfW6jxl6xbVbwjPN1rQTJ8KIbNX8IDLz_bJPAhHoBuaqAjYqvhPIlZpL4f5oWkukM3tAEy3ekicck';
-    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
-
+    const token = await getToken(fcmMessagingInstance, { vapidKey, serviceWorkerRegistration: fcmServiceWorkerRegistration });
     if (token) {
-      console.log('Token FCM obtido:', token);
+      if (token !== fcmClientToken) {
+        console.log('[FCM] Novo token FCM obtido:', token);
+      } else {
+        console.log('[FCM] Token FCM já atualizado.');
+      }
       fcmClientToken = token;
-      // Salva o token no Firestore vinculado ao usuário logado, se já autenticado
+      // Salva o token no Firestore vinculado ao usuário logado, se autenticado
       const auth = getAuth();
       const user = auth.currentUser;
       if (user) {
@@ -41,32 +82,20 @@ async function initFirebaseMessaging() {
           token,
           updatedAt: serverTimestamp()
         });
-        console.log('Token salvo no Firestore com sucesso!');
+        console.log('[FCM] Token FCM salvo no Firestore com sucesso!');
       } else {
-        // Se não autenticado, salva após login/submit
-        console.warn('Usuário não autenticado, token não salvo agora.');
+        // Usuário ainda não autenticado; salvar após login.
+        console.warn('[FCM] Usuário não autenticado, token não salvo agora.');
       }
     } else {
-      console.warn('Não foi possível obter token FCM.');
+      console.warn('[FCM] Não foi possível obter token FCM.');
     }
-
-    // Listener para mensagens recebidas enquanto o app está aberto
-    onMessage(messaging, (payload) => {
-      console.log('Mensagem recebida em foreground:', payload);
-      const notification = payload.notification;
-      if (notification) {
-        new Notification(notification.title || 'Notificação', {
-          body: notification.body || '',
-          icon: notification.icon || '/icons/icon-192.png'
-        });
-      }
-    });
   } catch (err) {
-    console.error('Erro ao inicializar FCM:', err);
+    console.error('[FCM] Erro ao obter/salvar token FCM:', err);
   }
 }
 
-// Inicia o FCM quando o DOM estiver pronto
+// Inicia o FCM quando o DOM estiver pronto e browser suporta
 if ('serviceWorker' in navigator && 'Notification' in window) {
   document.addEventListener('DOMContentLoaded', initFirebaseMessaging);
 }
@@ -584,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function(){
     unsubscribeMinhaFila = () => { try { unA(); unP(); } catch(_) {} };
   }
 
-  onAuthStateChanged(getAuth(), (user) => {
+  onAuthStateChanged(getAuth(), async (user) => {
     if (user && formAg) {
       watchMinhaFilaDoCliente();
     } else {
@@ -605,7 +634,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if (user && selectBarbeiro && selectBarbeiro.value) {
       populateHorarioForBarber(selectBarbeiro.value);
     }
-
+    // Revalida e salva token FCM sempre que usuário logar
+    if (user && fcmMessagingInstance && fcmServiceWorkerRegistration) {
+      await refreshAndSaveFcmToken();
+    }
     // Reavalia bloqueio global considerando VIP/auth atual
     applyGlobalOpen(bookingsOpenCurrent);
   });
@@ -707,20 +739,15 @@ document.addEventListener('DOMContentLoaded', function(){
           });
         });
 
-        // Após agendamento, salva o token FCM no Firestore vinculado ao usuário, se disponível
+        // Após agendamento, tenta revalidar/salvar o token FCM no Firestore se disponível
         try {
-          // Aguarda autenticação se necessário
           const auth = getAuth();
           const user = auth.currentUser;
-          if (user && fcmClientToken) {
-            await setDoc(doc(getFirestore(), 'user_tokens', user.uid), {
-              token: fcmClientToken,
-              updatedAt: serverTimestamp()
-            });
-            console.log('Token FCM salvo no Firestore após agendamento.');
+          if (user && fcmMessagingInstance && fcmServiceWorkerRegistration) {
+            await refreshAndSaveFcmToken();
           }
         } catch (errToken) {
-          console.warn('Não foi possível salvar o token FCM após agendamento:', errToken);
+          console.warn('[FCM] Não foi possível salvar o token FCM após agendamento:', errToken);
         }
 
         // Feedback rápido

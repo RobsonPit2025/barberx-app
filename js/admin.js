@@ -125,33 +125,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ======= Firebase Messaging (Push Notifications) =======
-const messaging = getMessaging(app);
-
-Notification.requestPermission().then(permission => {
-  if (permission === "granted") {
-    getToken(messaging, { vapidKey: "BB_cb-xc9ySfW6jxl6xbVbwjPN1rQTJ8KIbNX8IDLz_bJPAhHoBuaqAjYqvhPIlZpL4f5oWkukM3tAEy3ekicck" })
-      .then(token => {
-        console.log("Token de notificação:", token);
-      })
-      .catch(err => console.error("Erro ao obter token:", err));
-  } else {
-    console.warn("Permissão de notificação negada.");
-  }
-});
-
-onMessage(messaging, payload => {
-  console.log("Mensagem recebida no foreground:", payload);
-  if (Notification.permission === "granted") {
-    const notificationTitle = payload.notification?.title || "Nova Notificação";
-    const notificationOptions = {
-      body: payload.notification?.body || "",
-      icon: "/icons/icon-192x192.png"
-    };
-    new Notification(notificationTitle, notificationOptions);
-  }
-});
-// ======= FIM Firebase Messaging =======
 
 
 const auth = getAuth(app);
