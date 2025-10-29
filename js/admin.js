@@ -390,9 +390,30 @@ function renderAgendamento(dados, container, id) {
           paidBy: auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin',
           status: 'pendente' // agora entra na fila
         });
-        alert('PIX confirmado. Cliente entrou na fila.');
+
+        // Busca o token do cliente
+        const userTokenRef = doc(db, 'user_tokens', dados.userId);
+        const userTokenSnap = await getDoc(userTokenRef);
+
+        if (userTokenSnap.exists()) {
+          const clientToken = userTokenSnap.data().token;
+          await fetch('https://us-central1-barbex-app.cloudfunctions.net/sendNotification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: clientToken,
+              title: 'Pagamento PIX confirmado 💈',
+              body: 'Seu pagamento foi confirmado! Você entrou na fila do barbeiro.'
+            })
+          });
+        } else {
+          console.warn('Token do cliente não encontrado para o agendamento', id);
+        }
+
+        console.log('PIX confirmado e notificação enviada ao cliente.');
+        alert('PIX confirmado com sucesso.');
       } catch (e) {
-        console.error('Erro ao confirmar PIX:', e);
+        console.error('Erro ao confirmar PIX e enviar notificação:', e);
         alert('Não foi possível confirmar o PIX agora.');
       }
     });
