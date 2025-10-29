@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebas
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getDocFromServer } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging.js";
 
 function mostrarSecao(id) {
   console.log("Mostrando seção:", id);
@@ -123,6 +124,34 @@ const firebaseConfig = {
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ======= Firebase Messaging (Push Notifications) =======
+const messaging = getMessaging(app);
+
+Notification.requestPermission().then(permission => {
+  if (permission === "granted") {
+    getToken(messaging, { vapidKey: "BB_cb-xc9ySfW6jxl6xbVbwjPN1rQTJ8KIbNX8IDLz_bJPAhHoBuaqAjYqvhPIlZpL4f5oWkukM3tAEy3ekicck" })
+      .then(token => {
+        console.log("Token de notificação:", token);
+      })
+      .catch(err => console.error("Erro ao obter token:", err));
+  } else {
+    console.warn("Permissão de notificação negada.");
+  }
+});
+
+onMessage(messaging, payload => {
+  console.log("Mensagem recebida no foreground:", payload);
+  if (Notification.permission === "granted") {
+    const notificationTitle = payload.notification?.title || "Nova Notificação";
+    const notificationOptions = {
+      body: payload.notification?.body || "",
+      icon: "/icons/icon-192x192.png"
+    };
+    new Notification(notificationTitle, notificationOptions);
+  }
+});
+// ======= FIM Firebase Messaging =======
 
 
 const auth = getAuth(app);
