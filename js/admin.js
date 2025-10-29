@@ -314,6 +314,29 @@ function renderAgendamento(dados, container, id) {
           if (r < 1) console.warn('Nenhum lock encontrado para liberar (nao_comprovado):', dados);
         } catch(e) { console.warn('Falha ao liberar lock (nao_comprovado):', e); }
         alert('Marcado como NÃO COMPROVADO. O horário foi liberado.');
+        // Envia notificação ao cliente informando que o pagamento não foi comprovado
+        try {
+          const userTokenRef = doc(db, 'user_tokens', dados.userId);
+          const userTokenSnap = await getDoc(userTokenRef);
+          if (userTokenSnap.exists()) {
+            const clientToken = userTokenSnap.data().token;
+            const response = await fetch('https://us-central1-barbex-app.cloudfunctions.net/sendNotification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token: clientToken,
+                title: 'Pagamento PIX não comprovado ⚠️',
+                body: 'Seu pagamento não foi confirmado. Verifique e tente novamente.'
+              })
+            });
+            if (!response.ok) {
+              const text = await response.text();
+              console.warn('Falha ao enviar notificação de não comprovado:', text);
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao enviar notificação de não comprovado:', err);
+        }
       } catch (e) {
         console.error('Erro ao marcar não comprovado:', e);
         alert('Não foi possível marcar como não comprovado agora.');
@@ -397,15 +420,24 @@ function renderAgendamento(dados, container, id) {
 
         if (userTokenSnap.exists()) {
           const clientToken = userTokenSnap.data().token;
-          await fetch('https://us-central1-barbex-app.cloudfunctions.net/sendNotification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              token: clientToken,
-              title: 'Pagamento PIX confirmado 💈',
-              body: 'Seu pagamento foi confirmado! Você entrou na fila do barbeiro.'
-            })
-          });
+          try {
+            const response = await fetch('https://us-central1-barbex-app.cloudfunctions.net/sendNotification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token: clientToken,
+                title: 'Pagamento PIX confirmado 💈',
+                body: 'Seu pagamento foi confirmado! Você entrou na fila do barbeiro.'
+              })
+            });
+
+            if (!response.ok) {
+              const text = await response.text();
+              console.warn('Falha ao enviar notificação:', text);
+            }
+          } catch (err) {
+            console.error('Erro ao tentar enviar notificação:', err);
+          }
         } else {
           console.warn('Token do cliente não encontrado para o agendamento', id);
         }

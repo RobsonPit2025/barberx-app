@@ -39,11 +39,24 @@ async function initFirebaseMessaging() {
       if (notification) {
         // Exibição visual simples (alerta) além da Notification API
         alert((notification.title || 'Notificação') + '\n\n' + (notification.body || ''));
-        new Notification(notification.title || 'Notificação', {
+        const notif = new Notification(notification.title || 'Notificação', {
           body: notification.body || '',
           icon: notification.icon || '/icons/icon-192.png'
         });
+        // Se a aba atual não for a de agendamento ou o usuário não estiver visível na página, garante notificação
+        if (document.hidden || !window.location.pathname.includes('agendamento')) {
+          try {
+            new Notification(notification.title || 'Notificação', {
+              body: notification.body || '',
+              icon: notification.icon || '/icons/icon-192.png'
+            });
+            console.log('[FCM] Notificação mostrada mesmo fora da tela de agendamento.');
+          } catch (e) {
+            console.warn('[FCM] Falha ao mostrar notificação fora da tela ativa:', e);
+          }
+        }
       }
+      console.log('[FCM] Notificação processada completamente.');
     });
 
     // Após permissão, tenta obter e salvar o token imediatamente
@@ -99,6 +112,11 @@ async function refreshAndSaveFcmToken() {
 if ('serviceWorker' in navigator && 'Notification' in window) {
   document.addEventListener('DOMContentLoaded', initFirebaseMessaging);
 }
+
+// Listener global para testar se o navegador pode receber notificações e logar visibilidade
+document.addEventListener('visibilitychange', () => {
+  console.log('[FCM] Visibilidade da página alterada:', document.hidden ? 'oculta' : 'visível');
+});
 
 // ===== VIP: O recurso de VIP é implementado apenas no lado do cliente (browser) para facilitar upgrades e testes rápidos. =====
 
