@@ -7,13 +7,16 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBzqUQG0z7r6_0NfZ3Fz0lU6T5D_3Q5yYw",
+  apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
   authDomain: "barbex-app.firebaseapp.com",
   projectId: "barbex-app",
   storageBucket: "barbex-app.appspot.com",
-  messagingSenderId: "275897396550",
-  appId: "1:275897396550:web:8a9c6e4f4d2b1e0f3d2c8a"
+  messagingSenderId: "91864465722",
+  appId: "1:91864465722:web:7a3365582f3ca63e19d003"
 };
+
+// Inicializa o Firebase App logo após a definição do firebaseConfig
+initializeApp(firebaseConfig);
 
 // FCM token cache para uso após submit
 let fcmClientToken = null;
