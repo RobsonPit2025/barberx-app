@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 // ===== Firebase Cloud Messaging (FCM) =====
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBzqUQG0z7r6_0NfZ3Fz0lU6T5D_3Q5yYw",
@@ -14,8 +14,6 @@ const firebaseConfig = {
   messagingSenderId: "275897396550",
   appId: "1:275897396550:web:8a9c6e4f4d2b1e0f3d2c8a"
 };
-
-initializeApp(firebaseConfig);
 
 // FCM token cache para uso após submit
 let fcmClientToken = null;
@@ -31,7 +29,9 @@ async function initFirebaseMessaging() {
   if (fcmInitDone) return;
   fcmInitDone = true;
   try {
-    const messaging = getMessaging();
+    // Inicializa o Firebase App se necessário e obtém o messaging
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
     fcmMessagingInstance = messaging;
 
     // Registra o Service Worker do FCM (precisa estar na raiz pública)
