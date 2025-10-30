@@ -6,12 +6,12 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-comp
 
 // Configuração do Firebase
 firebase.initializeApp({
-  apiKey: "AIzaSyBzqUQG0z7r6_0NfZ3Fz0lU6T5D_3Q5yYw",
+  apiKey: "AIzaSyCnsA89psIo30sQdBM9wFFzydnfOLcOKIc",
   authDomain: "barbex-app.firebaseapp.com",
   projectId: "barbex-app",
-  storageBucket: "barbex-app.appspot.com",
-  messagingSenderId: "275897396550",
-  appId: "1:275897396550:web:8a9c6e4f4d2b1e0f3d2c8a"
+  storageBucket: "barbex-app.firebasestorage.app",
+  messagingSenderId: "91864465722",
+  appId: "1:91864465722:web:7a3365582f3ca63e19d003"
 });
 
 const messaging = firebase.messaging();
