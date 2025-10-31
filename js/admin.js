@@ -1,3 +1,34 @@
+// ==============================
+// Funções auxiliares de gerenciamento de locks
+// ==============================
+
+// Libera um lock específico pelo ID do documento
+async function releaseLockForData(lockId) {
+  try {
+    const lockRef = doc(db, "slot_locks", lockId);
+    await deleteDoc(lockRef);
+    console.log(`[ADMIN] Lock ${lockId} liberado com sucesso.`);
+  } catch (error) {
+    console.error("[ADMIN] Erro ao liberar lock:", error);
+    throw error;
+  }
+}
+
+// Força liberação de lock com base em campos específicos (ex: horário e data)
+async function forceReleaseByFields(field, value) {
+  try {
+    const q = query(collection(db, "slot_locks"), where(field, "==", value));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(async (docSnap) => {
+      await deleteDoc(doc(db, "slot_locks", docSnap.id));
+      console.log(`[ADMIN] Lock removido: ${docSnap.id}`);
+    });
+  } catch (error) {
+    console.error("[ADMIN] Erro ao forçar liberação de lock:", error);
+    throw error;
+  }
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, setDoc, updateDoc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getDocFromServer } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
