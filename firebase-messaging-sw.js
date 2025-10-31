@@ -20,20 +20,24 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Mensagem recebida em background:', payload);
 
-  const notificationTitle = payload.notification?.title || 'Nova notificação BarberX';
+  const notificationTitle = payload.notification?.title || 'Pagamento PIX confirmado 💈';
   const notificationOptions = {
-    body: payload.notification?.body || 'Você recebeu uma atualização no seu agendamento.',
-    icon: payload.notification?.icon || '/icons/icon-192.png',
-    badge: '/icons/icon-96.png',
-    data: payload.data || {},
+    body: payload.notification?.body || 'Seu pagamento foi confirmado! Você entrou na fila do barbeiro.',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-96x96.png',
+    data: {
+      url: 'https://barbex-app.web.app/agendamento',
+      ...payload.data
+    },
   };
 
-  // Exibe a notificação visual
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Exibe notificação visual mesmo se o app estiver fechado
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Quando o usuário clica na notificação
 self.addEventListener('notificationclick', (event) => {
+  console.log('[firebase-messaging-sw.js] Notificação clicada:', event.notification);
   event.notification.close();
 
   event.waitUntil(
