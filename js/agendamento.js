@@ -83,8 +83,8 @@ async function initFirebaseMessaging() {
 }
 
 /**
- * Obtém o token FCM, salva no Firestore se autenticado e atualiza cache.
- * Chame após login ou quando quiser garantir o token atualizado.
+ * Obtém o token FCM, salva no Firestore vinculado ao usuário logado e atualiza cache.
+ * Se o cliente trocar de conta, o token é automaticamente movido para o novo UID.
  */
 async function refreshAndSaveFcmToken() {
   try {
@@ -92,33 +92,30 @@ async function refreshAndSaveFcmToken() {
       console.warn('[FCM] Messaging ou Service Worker não inicializado.');
       return;
     }
-    // Substitua pela sua chave pública VAPID do Firebase Cloud Messaging
+
     const vapidKey = 'BB_cb-xc9ySfW6jxl6xbVbwjPN1rQTJ8KIbNX8IDLz_bJPAhHoBuaqAjYqvhPIlZpL4f5oWkukM3tAEy3ekicck';
     const token = await getToken(fcmMessagingInstance, { vapidKey, serviceWorkerRegistration: fcmServiceWorkerRegistration });
-    if (token) {
-      if (token !== fcmClientToken) {
-        console.log('[FCM] Novo token FCM obtido:', token);
-      } else {
-        console.log('[FCM] Token FCM já atualizado.');
-      }
-      fcmClientToken = token;
-      // Salva o token no Firestore vinculado ao usuário logado, se autenticado
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        const db = getFirestore();
-        await setDoc(doc(db, 'user_tokens', user.uid), {
-          token,
-          updatedAt: serverTimestamp()
-        });
-        console.log('[FCM] Token FCM salvo no Firestore com sucesso!');
-      } else {
-        // Usuário ainda não autenticado; salvar após login.
-        console.warn('[FCM] Usuário não autenticado, token não salvo agora.');
-      }
-    } else {
+
+    if (!token) {
       console.warn('[FCM] Não foi possível obter token FCM.');
+      return;
     }
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const db = getFirestore();
+      await setDoc(doc(db, 'user_tokens', user.uid), {
+        token,
+        updatedAt: serverTimestamp(),
+      });
+      console.log('[FCM] Token FCM salvo no Firestore com sucesso!');
+      fcmClientToken = token;
+    } else {
+      console.warn('[FCM] Usuário não autenticado, token aguardando login.');
+    }
+
   } catch (err) {
     console.error('[FCM] Erro ao obter/salvar token FCM:', err);
   }
@@ -652,34 +649,28 @@ document.addEventListener('DOMContentLoaded', function(){
     unsubscribeMinhaFila = () => { try { unA(); unP(); } catch(_) {} };
   }
 
-  onAuthStateChanged(getAuth(), async (user) => {
-    if (user && formAg) {
-      watchMinhaFilaDoCliente();
-    } else {
-      blockedByQueue = false;
-      hideMinhaFila();
-      applyDisableState();
-      if (typeof unsubscribeMinhaFila === 'function') {
-        try { unsubscribeMinhaFila(); } catch(_) {}
-        unsubscribeMinhaFila = null;
-      }
+// === Reage a login e logout dinamicamente ===
+onAuthStateChanged(getAuth(), async (user) => {
+  if (user) {
+    console.log('[AUTH] Usuário autenticado:', user.email);
+    // Sempre salva o token vinculado ao UID da conta atual
+    await refreshAndSaveFcmToken();
+    watchMinhaFilaDoCliente();
+  } else {
+    console.log('[AUTH] Usuário saiu — limpando estado local.');
+    blockedByQueue = false;
+    hideMinhaFila();
+    applyDisableState();
+    if (typeof unsubscribeMinhaFila === 'function') {
+      try { unsubscribeMinhaFila(); } catch(_) {}
+      unsubscribeMinhaFila = null;
     }
-    // Reavalia a fila ao mudar usuário para garantir limites VIP corretos
-    if (user && formAg) {
-      watchMinhaFilaDoCliente();
-    }
-    // Recarrega a grade após login para garantir que os horários "(ocupado)"
-    // apareçam quando as regras exigem autenticação para ler `slot_locks`.
-    if (user && selectBarbeiro && selectBarbeiro.value) {
-      populateHorarioForBarber(selectBarbeiro.value);
-    }
-    // Revalida e salva token FCM sempre que usuário logar
-    if (user && fcmMessagingInstance && fcmServiceWorkerRegistration) {
-      await refreshAndSaveFcmToken();
-    }
-    // Reavalia bloqueio global considerando VIP/auth atual
-    applyGlobalOpen(bookingsOpenCurrent);
-  });
+  }
+
+  // Recarrega a grade de horários e aplica o estado global
+  if (selectBarbeiro?.value) populateHorarioForBarber(selectBarbeiro.value);
+  applyGlobalOpen(bookingsOpenCurrent);
+});
 
   // ===== Submit: salvar agendamento com pagamento antecipado (aguardando confirmação) =====
   const form = document.getElementById('formAgendamento');
