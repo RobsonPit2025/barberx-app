@@ -52,19 +52,29 @@ async function initFirebaseMessaging() {
     onMessage(messaging, (payload) => {
       console.log('[FCM] Mensagem recebida em foreground:', payload);
       const notification = payload.notification;
+
       if (notification) {
-        // Exibição visual simples (alerta) além da Notification API
-        alert((notification.title || 'Notificação') + '\n\n' + (notification.body || ''));
-        const notif = new Notification(notification.title || 'Notificação', {
-          body: notification.body || '',
-          icon: notification.icon || '/icons/icon-192.png'
-        });
-        // Se a aba atual não for a de agendamento ou o usuário não estiver visível na página, garante notificação
+        const { title, body, icon } = notification;
+        console.log('[FCM] Exibindo notificação visual:', title, body);
+
+        try {
+          // Mostra uma notificação visual (caso o navegador permita)
+          new Notification(title || 'Notificação', {
+            body: body || '',
+            icon: icon || '/icons/icon-192.png'
+          });
+        } catch (e) {
+          console.warn('[FCM] Falha ao exibir via Notification API:', e);
+          // Fallback com alerta se a notificação visual for bloqueada
+          alert((title || 'Notificação') + '\n\n' + (body || ''));
+        }
+
+        // Se a aba estiver em segundo plano, reforça a exibição
         if (document.hidden || !window.location.pathname.includes('agendamento')) {
           try {
-            new Notification(notification.title || 'Notificação', {
-              body: notification.body || '',
-              icon: notification.icon || '/icons/icon-192.png'
+            new Notification(title || 'Notificação', {
+              body: body || '',
+              icon: icon || '/icons/icon-192.png'
             });
             console.log('[FCM] Notificação mostrada mesmo fora da tela de agendamento.');
           } catch (e) {
@@ -72,6 +82,7 @@ async function initFirebaseMessaging() {
           }
         }
       }
+
       console.log('[FCM] Notificação processada completamente.');
     });
 
@@ -122,9 +133,7 @@ async function refreshAndSaveFcmToken() {
 }
 
 // Inicia o FCM quando o DOM estiver pronto e browser suporta
-if ('serviceWorker' in navigator && 'Notification' in window) {
-  document.addEventListener('DOMContentLoaded', initFirebaseMessaging);
-}
+if ('serviceWorker' in navigator && 'Notification' in window)
 
 // Listener global para testar se o navegador pode receber notificações e logar visibilidade
 document.addEventListener('visibilitychange', () => {
@@ -652,6 +661,10 @@ document.addEventListener('DOMContentLoaded', function(){
 // === Reage a login e logout dinamicamente ===
 onAuthStateChanged(getAuth(), async (user) => {
   if (user) {
+        if (!fcmInitDone && 'serviceWorker' in navigator && 'Notification' in window) {
+      await initFirebaseMessaging();
+    }
+    
     console.log('[AUTH] Usuário autenticado:', user.email);
     // Sempre salva o token vinculado ao UID da conta atual
     await refreshAndSaveFcmToken();
