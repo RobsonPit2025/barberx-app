@@ -360,24 +360,29 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function generateSlots(start, end, step) {
-    const out = [];
-    const inc = Number(step || 35);
-    if (!inc || inc <= 0) return out;
+  const out = [];
+  const inc = Number(step || 35);
+  if (!inc || inc <= 0) return out;
 
-    const s = toMinutes(start);
-    const e = toMinutes(end);
-    const MIN_IN_DAY = 24 * 60; // 1440
+  const s = toMinutes(start);
+  let e = toMinutes(end);
+  const MIN_IN_DAY = 24 * 60; // 1440
 
-    if (s <= e) {
-      // janela no mesmo dia
-      for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
-    } else {
-      // janela atravessa a meia-noite (ex.: 21:00 -> 03:00)
-      for (let t = s; t < MIN_IN_DAY; t += inc) out.push(toHHMM(t));
-      for (let t = 0; t <= e; t += inc) out.push(toHHMM(t));
-    }
-    return out;
+  // Se end for 00:00, trata como 24:00 (fim do dia = 1440 minutos)
+  if (e === 0 && start !== '00:00') {
+    e = MIN_IN_DAY;
   }
+
+  if (s <= e) {
+    // janela no mesmo dia
+    for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
+  } else {
+    // janela atravessa a meia-noite (ex.: 21:00 -> 03:00)
+    for (let t = s; t < MIN_IN_DAY; t += inc) out.push(toHHMM(t));
+    for (let t = 0; t <= e; t += inc) out.push(toHHMM(t));
+  }
+  return out;
+}
 
   async function disableTakenSlots(barberId, dataDia) {
     if (!selectHorario || !barberId) return;
