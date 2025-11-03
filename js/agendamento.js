@@ -432,15 +432,7 @@ document.addEventListener('DOMContentLoaded', function(){
     selectHorario.innerHTML = '<option value="">Escolha o horário</option>';
 
     const sched = await getScheduleForBarber(barberId);
-    if (!sched || !sched.open) {
-      const box = document.getElementById('horariosContainer') || selectHorario?.parentNode;
-      if (box) {
-        box.innerHTML = '<p style="text-align:center; opacity:0.7; color:#555;">Agenda fechada no momento. Volte mais tarde.</p>';
-      } else if (selectHorario) {
-        selectHorario.innerHTML = '<option value="">Agenda fechada no momento</option>';
-      }
-      return;
-    }
+    if (!sched || !sched.open) return; // se fechado, não popula mais nada
 
     const step = Number(sched.slotStep || 35);
     const slots = generateSlots(sched.slotStart, sched.slotEnd, step);

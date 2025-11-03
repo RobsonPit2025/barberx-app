@@ -1104,63 +1104,27 @@ if (cfgBarbeiro) {
 if (btnSalvar) {
   btnSalvar.addEventListener('click', async () => {
     if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
-
-    const barber = normalizeBarberId(cfgBarbeiro?.value);
-    if (!barber) { alert('Selecione um barbeiro.'); return; }
-
-    const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
-    const isOpen = cfgOpen?.value === 'true';
+    // Validação mínima do passo (step)
     const stepVal = Number(cfgStep?.value || 35);
-
+    if (!stepVal || stepVal <= 0) {
+      alert('Intervalo inválido. Use um valor maior que 0.');
+      return;
+    }
     try {
-      if (!isOpen) {
-        // Quando o barbeiro for fechado, limpa toda a configuração
-        await setDoc(doc(db, 'settings', id), {
-          open: false,
-          slotStart: '',
-          slotEnd: '',
-          slotStep: 0,
-          lunchStart: '',
-          lunchEnd: ''
-        }, { merge: true });
-
-        // Atualiza cache e reseta a UI
-        barberStatusCache[barber] = false;
-        cfgStart.value = '';
-        cfgEnd.value = '';
-        cfgStep.value = '';
-        cfgLunchStart.value = '';
-        cfgLunchEnd.value = '';
-        alert(`O barbeiro ${barber} foi marcado como FECHADO e o horário foi resetado.`);
-        await renderSchedulePreview();
-        return;
-      }
-
-      // Se estiver aberto, valida os campos
-      if (!cfgStart.value || !cfgEnd.value) {
-        alert('Informe o horário de início e término.');
-        return;
-      }
-      if (!stepVal || stepVal <= 0) {
-        alert('Intervalo inválido. Use um valor maior que 0.');
-        return;
-      }
-
-      // Salva a configuração completa
+      const barber = normalizeBarberId(cfgBarbeiro?.value);
+      const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
       await setDoc(doc(db, 'settings', id), {
-        open: true,
+        open: cfgOpen?.value === 'true',
         slotStart: cfgStart?.value || '09:30',
-        slotEnd: cfgEnd?.value || '19:00',
-        slotStep: stepVal,
+        slotEnd:   cfgEnd?.value   || '19:00',
+        slotStep:  stepVal,
         lunchStart: (cfgLunchStart?.value || '').trim(),
-        lunchEnd: (cfgLunchEnd?.value || '').trim()
+        lunchEnd:   (cfgLunchEnd?.value   || '').trim()
       }, { merge: true });
-
-      barberStatusCache[barber] = true;
-      alert(`Configuração de horários salva com sucesso para ${barber}!`);
+      alert('Configuração de horários salva!');
+      // Recarrega os dados salvos e renderiza novamente o preview
       await loadScheduleToUI(cfgBarbeiro.value);
       await renderSchedulePreview();
-
     } catch (e) {
       console.error('Erro ao salvar configuração de horário:', e);
       alert('Não foi possível salvar agora.');
