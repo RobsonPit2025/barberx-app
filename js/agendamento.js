@@ -336,7 +336,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ===== Conversores de horário =====
   const toMinutes = (hhmm) => {
-    const [h, m] = (hhmm || '00:00').split(':').map(Number);
+    if (!hhmm) return 0;
+    // limpa espaços e converte ponto para dois-pontos
+    const clean = hhmm.toString().trim().replace(/\./g, ':');
+    const [h, m] = clean.split(':').map(n => Number(n) || 0);
     return (h * 60) + m;
   };
   const toHHMM = (mins) => {
@@ -360,7 +363,16 @@ document.addEventListener('DOMContentLoaded', function(){
     const db = getFirestore();
     const scheduleDocId = `schedule_${id.toLowerCase()}`;
     const snap = await getDoc(doc(db, 'settings', scheduleDocId));
-    if (snap.exists()) return snap.data();
+    if (snap.exists()) {
+      const data = snap.data() || {};
+      // Padroniza formato de horário (troca ponto por dois-pontos)
+      const fixTimeFormat = t => typeof t === 'string' ? t.replace('.', ':') : t;
+      data.slotStart  = fixTimeFormat(data.slotStart);
+      data.slotEnd    = fixTimeFormat(data.slotEnd);
+      data.lunchStart = fixTimeFormat(data.lunchStart);
+      data.lunchEnd   = fixTimeFormat(data.lunchEnd);
+      return data;
+    }
     // fallback padrão caso ainda não tenha sido configurado no admin
     return { open: true, slotStart: '09:30', slotEnd: '19:00', slotStep: 35 };
   }
@@ -427,7 +439,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Filtra horários que já passaram no dia atual
     const nowM = nowMinutes();
-    const futuros = slots.filter(t => toMinutes(t) >= nowM);
+    let futuros = slots;
+
+    // Só filtra horários passados se o dia for hoje
+    const hojeISO = todayISO();
+    const dataSelecionada = hojeISO; // se no futuro tiver seletor de data, substituir aqui
+    if (dataSelecionada === hojeISO) {
+      futuros = slots.filter(t => toMinutes(t) >= nowM);
+    }
 
     // ===== Janela de ALMOÇO: computa slots que caem dentro do almoço =====
     const almoco = new Set();
@@ -439,11 +458,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (Number.isFinite(ls) && Number.isFinite(le) && step > 0) {
         if (ls <= le) {
           // inclui o horário final do almoço
-          for (let t = ls; t <= le; t += step) almoco.add(toHHMM(t));
+          for (let t = ls; t <= le + step; t += step) almoco.add(toHHMM(t));
         } else {
           // almoço atravessando a meia-noite: inclui o horário final
           for (let t = ls; t < 1440; t += step) almoco.add(toHHMM(t));
-          for (let t = 0; t <= le; t += step) almoco.add(toHHMM(t));
+          for (let t = 0; t <= le + step; t += step) almoco.add(toHHMM(t));
         }
       }
     }

@@ -898,18 +898,22 @@ function generateSlots(start, end, step) {
   let e = toMinutes(end);
   const MIN_IN_DAY = 24 * 60; // 1440 minutos
 
-  // Se o barbeiro escolher 00:00 como fim, considera como 24:00 (meia-noite do mesmo dia)
+  // Se o fim for 00:00, tratar como 24:00 (meia-noite do mesmo dia)
   if (e === 0 && start !== "00:00") e = MIN_IN_DAY;
 
-  // Caso o fim seja menor que o início, significa que cruza a meia-noite
+  // Caso o fim seja menor que o início → cruza a meia-noite
   if (e < s) {
     for (let t = s; t < MIN_IN_DAY; t += inc) out.push(toHHMM(t));
     for (let t = 0; t <= e; t += inc) out.push(toHHMM(t));
   } else {
-    for (let t = s; t <= e; t += inc) out.push(toHHMM(t));
+    for (let t = s; t <= e; t += inc) {
+      // Garante que o último horário sempre apareça mesmo se o intervalo não encaixar exatamente
+      if (t + inc > e && t !== e) out.push(toHHMM(e));
+      else out.push(toHHMM(t));
+    }
   }
 
-  // Garante que os horários fiquem dentro de 00:00–23:59 (sem duplicação)
+  // Remove duplicações e horários inválidos
   return Array.from(new Set(out.filter(h => {
     const [hh, mm] = h.split(":").map(Number);
     return hh >= 0 && hh < 24 && mm >= 0 && mm < 60;
@@ -1114,10 +1118,12 @@ if (btnSalvar) {
         slotStart: cfgStart?.value || '09:30',
         slotEnd:   cfgEnd?.value   || '19:00',
         slotStep:  stepVal,
-        lunchStart: (cfgLunchStart?.value || '').trim() || null,
-        lunchEnd:   (cfgLunchEnd?.value   || '').trim() || null
+        lunchStart: (cfgLunchStart?.value || '').trim(),
+        lunchEnd:   (cfgLunchEnd?.value   || '').trim()
       }, { merge: true });
       alert('Configuração de horários salva!');
+      // Recarrega os dados salvos e renderiza novamente o preview
+      await loadScheduleToUI(cfgBarbeiro.value);
       await renderSchedulePreview();
     } catch (e) {
       console.error('Erro ao salvar configuração de horário:', e);
