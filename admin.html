@@ -73,34 +73,6 @@
         <p class="hint">Escolha o barbeiro que deseja configurar.</p>
       </div>
 
-      <div id="cfgStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div class="config-group">
-          <label for="cfgStart">Início</label>
-          <input id="cfgStart" type="time" value="09:30">
-          <p class="hint">Defina o horário de início do expediente.</p>
-        </div>
-      </div>
-      <div id="cfgEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div class="config-group">
-          <label for="cfgEnd">Fim</label>
-          <input id="cfgEnd" type="time" value="19:00">
-          <p class="hint">Informe o horário de encerramento do expediente.</p>
-        </div>
-      </div>
-      <div id="cfgLunchStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div class="config-group">
-          <label for="cfgLunchStart">Início do almoço</label>
-          <input id="cfgLunchStart" type="time" placeholder="12:00">
-          <p class="hint">Defina o horário de início do almoço.</p>
-        </div>
-      </div>
-      <div id="cfgLunchEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
-        <div class="config-group">
-          <label for="cfgLunchEnd">Fim do almoço</label>
-          <input id="cfgLunchEnd" type="time" placeholder="13:00">
-          <p class="hint">Defina o horário de término do almoço.</p>
-        </div>
-      </div>
       <div id="cfgStepDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div class="config-group">
           <label for="cfgStep">Intervalo</label>
@@ -116,6 +88,30 @@
           <p class="hint">Selecione o intervalo entre atendimentos.</p>
         </div>
       </div>
+
+      <div id="cfgStartDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
+        <div class="config-group">
+          <label for="cfgStart">Início</label>
+          <input id="cfgStart" type="time" value="09:30">
+          <p class="hint">Defina o horário de início do expediente.</p>
+        </div>
+      </div>
+      <div id="cfgEndDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
+        <div class="config-group">
+          <label for="cfgEnd">Fim</label>
+          <input id="cfgEnd" type="time" value="19:00">
+          <p class="hint">Informe o horário de encerramento do expediente.</p>
+        </div>
+      </div>
+      <div id="cfgLunchSelectDiv" style="display:grid; gap:10px; margin:12px 0;" class="hidden">
+        <div class="config-group">
+          <label for="gradeAlmoco">Horário de Almoço</label>
+          <div id="gradeAlmoco" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap:6px;"></div>
+          <input type="hidden" id="cfgLunchStart">
+          <input type="hidden" id="cfgLunchEnd">
+          <p class="hint">Selecione dois horários da grade para definir início e fim do almoço.</p>
+        </div>
+      </div>
       <div id="cfgOpenDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:12px 0;" class="hidden">
         <div class="config-group">
           <label for="cfgOpen">Status</label>
@@ -128,7 +124,9 @@
       </div>
       <div id="cfgPreview" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:8px; margin-bottom:10px;" class="hidden"></div>
 
-      <button id="btnSalvarHorario" class="hidden">Salvar configurações</button>
+      <div id="salvarContainer" style="margin-top: 15px; text-align: center;">
+        <button id="btnSalvarHorario" class="btn-salvar">💾 Salvar configurações</button>
+      </div>
       <p class="hint">Essas configurações definem a grade visível para clientes ao escolherem este barbeiro.</p>
     </section>
 

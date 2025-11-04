@@ -716,14 +716,139 @@ const cfgEnd      = document.getElementById('cfgEnd');
 const cfgStep     = document.getElementById('cfgStep');
 const cfgOpen     = document.getElementById('cfgOpen');
 const btnSalvar   = document.getElementById('btnSalvarHorario');
-const cfgDate    = document.getElementById('cfgDate');
+const cfgDate     = document.getElementById('cfgDate');
 const cfgLunchStart = document.getElementById('cfgLunchStart');
 const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
+// --- Variáveis globais de almoço (disponíveis no window) ---
+window.lunchStart = '';
+window.lunchEnd = '';
+
+const gradeAlmoco = document.getElementById('gradeAlmoco');
+const cfgLunchSelectDiv = document.getElementById('cfgLunchSelectDiv');
+
+function gerarGradeAlmoco() {
+  if (!cfgStart.value || !cfgEnd.value || !cfgStep.value) {
+    if (cfgLunchSelectDiv) cfgLunchSelectDiv.classList.add('hidden');
+    return;
+  }
+
+  const start = cfgStart.value;
+  const end = cfgEnd.value;
+  const step = Number(cfgStep.value);
+  const horarios = generateSlots(start, end, step);
+
+  if (!gradeAlmoco) return;
+  gradeAlmoco.innerHTML = '';
+  horarios.forEach(hora => {
+    const btn = document.createElement('button');
+    btn.textContent = hora;
+    btn.classList.add('grade-horario');
+    gradeAlmoco.appendChild(btn);
+  });
+
+  // Nova lógica de seleção de almoço (limpa a anterior e conecta ao clique)
+  document.querySelectorAll('.grade-horario').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const allButtons = document.querySelectorAll('.grade-horario');
+      // se nenhum horário foi selecionado ainda
+      if (!window.lunchStart) {
+        window.lunchStart = btn.textContent.trim();
+        btn.classList.add('selected-start');
+      }
+      // se já tem início mas ainda não tem fim
+      else if (!window.lunchEnd && btn.textContent.trim() !== window.lunchStart) {
+        window.lunchEnd = btn.textContent.trim();
+        btn.classList.add('selected-end');
+
+        const startIndex = [...allButtons].findIndex(b => b.textContent.trim() === window.lunchStart);
+        const endIndex = [...allButtons].findIndex(b => b.textContent.trim() === window.lunchEnd);
+
+        allButtons.forEach((b, i) => {
+          if (i > startIndex && i < endIndex) b.classList.add('selected-range');
+        });
+      }
+      // se já existe início e fim, reseta
+      else {
+        window.lunchStart = '';
+        window.lunchEnd = '';
+        allButtons.forEach(b => b.classList.remove('selected-start', 'selected-end', 'selected-range'));
+      }
+    });
+  });
+
+  // Atualiza inputs ocultos DINAMICAMENTE sempre que o usuário clicar
+  document.querySelectorAll('.grade-horario').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cfgLunchStart = document.getElementById('cfgLunchStart');
+      const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
+      if (cfgLunchStart && cfgLunchEnd) {
+        cfgLunchStart.value = window.lunchStart || '';
+        cfgLunchEnd.value   = window.lunchEnd   || '';
+        console.log(`[DEBUG] Atualizando inputs ocultos → Início: ${cfgLunchStart.value}, Fim: ${cfgLunchEnd.value}`);
+      }
+    });
+  });
+
+  if (cfgLunchSelectDiv) cfgLunchSelectDiv.classList.remove('hidden');
+}
+
+// Atualiza grade de almoço automaticamente após definir step, início e fim
+[cfgStep, cfgStart, cfgEnd].forEach(el => {
+  if (el) el.addEventListener('change', gerarGradeAlmoco);
+});
+
+// Nova implementação de salvarConfiguracoes conforme instruções
+async function salvarConfiguracoes() {
+  try {
+    const barbeiro = document.getElementById('cfgBarbeiro').value;
+    const intervalo = parseInt(document.getElementById('cfgStep').value);
+    const inicio = document.getElementById('cfgStart').value;
+    const fim = document.getElementById('cfgEnd').value;
+    const status = document.getElementById('statusSelect').value === 'Aberto';
+    await new Promise(resolve => setTimeout(resolve, 100)); // Aguarda atualização do DOM
+
+    // Garante que barbeiro foi escolhido
+    if (!barbeiro) {
+      alert('Selecione um barbeiro antes de salvar!');
+      return;
+    }
+
+    // Garante que início e fim foram definidos
+    if (!inicio || !fim) {
+      alert('Defina o horário de início e fim do expediente!');
+      return;
+    }
+
+    // Garante que almoço foi selecionado pela grade visual
+    // Usa as variáveis globais lunchStart/lunchEnd
+
+    const scheduleRef = doc(db, 'settings', `schedule_${barbeiro}`);
+    const dataToSave = {
+      slotStart: inicio,
+      slotEnd: fim,
+      slotStep: intervalo,
+      open: status,
+    };
+
+    // Só adiciona almoço se tiver sido definido
+    if (lunchStart && lunchEnd) {
+      dataToSave.lunchStart = lunchStart;
+      dataToSave.lunchEnd = lunchEnd;
+    }
+
+    await setDoc(scheduleRef, dataToSave, { merge: true });
+    console.log('[DEBUG] Configurações salvas:', dataToSave);
+    alert('Configurações salvas com sucesso!');
+  } catch (error) {
+    console.error('[ERRO ao salvar configurações]', error);
+    alert('Ocorreu um erro ao salvar as configurações.');
+  }
+}
 
 // Cache local para o status aberto/fechado de cada barbeiro
 const barberStatusCache = {};
 
-// Função para exibir campos progressivamente na configuração de horários (NOVO FLUXO)
+// Função para exibir campos progressivamente na configuração de horários (NOVO FLUXO - ordem e lógica ajustadas)
 function atualizarVisibilidadeCampos() {
   // Helper para obter o contêiner apropriado do campo
   const getEl = (el, divId) => {
@@ -732,23 +857,22 @@ function atualizarVisibilidadeCampos() {
     if (el.parentElement && el.parentElement.classList.contains("form-group")) return el.parentElement;
     return el;
   };
-
   // Elementos ou contêineres dos campos
   const elBarbeiro   = getEl(cfgBarbeiro, "cfgBarbeiroDiv");
   const elOpen       = getEl(cfgOpen, "cfgOpenDiv");
+  const elStep       = getEl(cfgStep, "cfgStepDiv");
   const elStart      = getEl(cfgStart, "cfgStartDiv");
+  const elEnd        = getEl(cfgEnd, "cfgEndDiv");
   const elLunchStart = getEl(cfgLunchStart, "cfgLunchStartDiv");
   const elLunchEnd   = getEl(cfgLunchEnd, "cfgLunchEndDiv");
-  const elEnd        = getEl(cfgEnd, "cfgEndDiv");
-  const elStep       = getEl(cfgStep, "cfgStepDiv");
   const elBtnSalvar  = getEl(btnSalvar, "btnSalvarHorarioDiv");
 
   // Sempre fecha todos os campos (menos barbeiro e status) no início
+  if (elStep)       elStep.classList.add('hidden');
   if (elStart)      elStart.classList.add('hidden');
+  if (elEnd)        elEnd.classList.add('hidden');
   if (elLunchStart) elLunchStart.classList.add('hidden');
   if (elLunchEnd)   elLunchEnd.classList.add('hidden');
-  if (elEnd)        elEnd.classList.add('hidden');
-  if (elStep)       elStep.classList.add('hidden');
   if (elBtnSalvar)  elBtnSalvar.classList.add('hidden');
 
   // Etapa 1: apenas barbeiro e status visíveis inicialmente
@@ -762,105 +886,53 @@ function atualizarVisibilidadeCampos() {
   const statusSelecionado = statusValue === "true" || statusValue === "false";
   // Se status estiver fechado ou indefinido, esconde tudo imediatamente
   if (!aberto || !statusSelecionado) {
-    // Garante que todos os campos (exceto barbeiro e status) estejam escondidos
+    if (elStep)       elStep.classList.add('hidden');
     if (elStart)      elStart.classList.add('hidden');
+    if (elEnd)        elEnd.classList.add('hidden');
     if (elLunchStart) elLunchStart.classList.add('hidden');
     if (elLunchEnd)   elLunchEnd.classList.add('hidden');
-    if (elEnd)        elEnd.classList.add('hidden');
-    if (elStep)       elStep.classList.add('hidden');
     if (elBtnSalvar)  elBtnSalvar.classList.add('hidden');
     return;
   }
 
-  // Somente se barbeiro selecionado E status = aberto, mostrar os próximos campos
+  // Nova ordem de exibição progressiva:
+  // 1. Barbeiro e status (já visíveis acima)
+  // 2. Intervalo dos cortes (cfgStep)
+  // 3. Início e fim do expediente (cfgStart, cfgEnd)
+  // 4. Início e fim do almoço (cfgLunchStart, cfgLunchEnd)
+  // 5. Botão salvar (quando todos definidos)
+
+  // 2. Após barbeiro+status aberto, mostra intervalo
   if (barbeiroSelecionado && aberto) {
-    // Mostra início
-    if (elStart) elStart.classList.remove('hidden');
-    if (cfgStart && cfgStart.value) {
-      // Mostra almoço início
-      if (elLunchStart) elLunchStart.classList.remove('hidden');
-      if (cfgLunchStart && cfgLunchStart.value) {
-        // Mostra almoço fim
-        if (elLunchEnd) elLunchEnd.classList.remove('hidden');
-        if (cfgLunchEnd && cfgLunchEnd.value) {
-          // Mostra fim
-          if (elEnd) elEnd.classList.remove('hidden');
-          if (cfgEnd && cfgEnd.value) {
-            // Mostra intervalo
-            if (elStep) elStep.classList.remove('hidden');
-            const validStep = cfgStep && cfgStep.value && Number(cfgStep.value) > 0;
-            if (validStep) {
-              // Mostra botão salvar
-              if (elBtnSalvar) elBtnSalvar.classList.remove('hidden');
-            }
-          }
+    if (elStep) elStep.classList.remove('hidden');
+    // 3. Após escolher intervalo, mostra início e fim do expediente
+    const validStep = cfgStep && cfgStep.value && Number(cfgStep.value) > 0;
+    if (validStep) {
+      if (elStart) elStart.classList.remove('hidden');
+      if (elEnd)   elEnd.classList.remove('hidden');
+      // 4. Após definir início e fim do expediente, mostra início e fim do almoço
+      const hasStart = cfgStart && cfgStart.value;
+      const hasEnd   = cfgEnd && cfgEnd.value;
+      if (hasStart && hasEnd) {
+        if (elLunchStart) elLunchStart.classList.remove('hidden');
+        if (elLunchEnd)   elLunchEnd.classList.remove('hidden');
+        // O botão de salvar agora aparece assim que o expediente for definido
+        if (hasStart && hasEnd) {
+          if (elBtnSalvar) elBtnSalvar.classList.remove('hidden');
         }
       }
     }
   }
 }
 
+// Função auxiliar: atualiza horários disponíveis para o almoço com base no expediente e intervalo
+function atualizarHorariosDeAlmoco() {
+  // Não faz nada pois gradeAlmoco é agora o único método de seleção
+}
+
 
 // --- UI extra: seleção de almoço por clique na pré-visualização + botão limpar ---
-const cfgPreviewEl = document.getElementById('cfgPreview');
-
-// cria o botão "Limpar almoço" dinamicamente se não existir no HTML
-let btnClearLunch = document.getElementById('btnClearLunch');
-if (!btnClearLunch && cfgLunchEnd && cfgLunchEnd.parentNode) {
-  btnClearLunch = document.createElement('button');
-  btnClearLunch.id = 'btnClearLunch';
-  btnClearLunch.type = 'button';
-  btnClearLunch.textContent = 'Limpar almoço';
-  btnClearLunch.style.marginLeft = '8px';
-  cfgLunchEnd.parentNode.insertBefore(btnClearLunch, cfgLunchEnd.nextSibling);
-}
-
-if (btnClearLunch) {
-  btnClearLunch.addEventListener('click', () => {
-    if (cfgLunchStart) cfgLunchStart.value = '';
-    if (cfgLunchEnd)   cfgLunchEnd.value = '';
-    renderSchedulePreview();
-  });
-}
-
-// Permite escolher o intervalo de almoço clicando em dois horários na pré-visualização
-if (cfgPreviewEl) {
-  cfgPreviewEl.addEventListener('click', (ev) => {
-    const slot = ev.target.closest('[data-hh]');
-    if (!slot) return;
-    const hh = slot.getAttribute('data-hh');
-    if (!hh) return;
-
-    // 1º clique define início; 2º clique define fim (ordena automaticamente)
-    const curStart = (cfgLunchStart?.value || '').trim();
-    const curEnd   = (cfgLunchEnd?.value   || '').trim();
-
-    if (!curStart) {
-      if (cfgLunchStart) cfgLunchStart.value = hh;
-      if (cfgLunchEnd)   cfgLunchEnd.value = '';
-    } else if (!curEnd) {
-      // segundo clique
-      const s = toMinutes(curStart), e = toMinutes(hh);
-      if (Number.isFinite(s) && Number.isFinite(e)) {
-        if (e >= s) {
-          if (cfgLunchEnd) cfgLunchEnd.value = hh;
-        } else {
-          // se clicou um horário anterior, inverte
-          if (cfgLunchStart) cfgLunchStart.value = hh;
-          if (cfgLunchEnd)   cfgLunchEnd.value = curStart;
-        }
-      } else {
-        if (cfgLunchEnd) cfgLunchEnd.value = hh;
-      }
-    } else {
-      // já tinha os dois – reinicia seleção, começando pelo novo clique
-      if (cfgLunchStart) cfgLunchStart.value = hh;
-      if (cfgLunchEnd)   cfgLunchEnd.value = '';
-    }
-
-    renderSchedulePreview();
-  });
-}
+// (Removida lógica antiga de selects para almoço)
 
 function normalizeBarberId(v){
   if(!v) return '';
@@ -1089,6 +1161,12 @@ if (cfgBarbeiro) {
       }
     });
   }
+  // Sempre que cfgStart, cfgEnd ou cfgStep forem modificados, atualiza horários de almoço
+  [cfgStart, cfgEnd, cfgStep].forEach(el => {
+    if (el) el.addEventListener('change', () => {
+      atualizarHorariosDeAlmoco();
+    });
+  });
   [cfgStart, cfgLunchStart, cfgLunchEnd, cfgEnd, cfgStep].forEach(el => {
     if (el) el.addEventListener('change', async () => {
       await renderSchedulePreview();
@@ -1103,37 +1181,84 @@ if (cfgBarbeiro) {
 
 if (btnSalvar) {
   btnSalvar.addEventListener('click', async () => {
-    if (!isCurrentUserAdmin()) { alert('Apenas administradores.'); return; }
-    // Validação mínima do passo (step)
-    const stepVal = Number(cfgStep?.value || 35);
-    if (!stepVal || stepVal <= 0) {
-      alert('Intervalo inválido. Use um valor maior que 0.');
+    if (!isCurrentUserAdmin()) {
+      alert('Apenas administradores podem salvar configurações.');
       return;
     }
+
+    const barber = normalizeBarberId(cfgBarbeiro?.value);
+    if (!barber) {
+      alert('Selecione um barbeiro antes de salvar.');
+      return;
+    }
+
+    const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+    const isOpen = cfgOpen?.value === 'true';
+    const stepVal = Number(cfgStep?.value || 35);
+
     try {
-      const barber = normalizeBarberId(cfgBarbeiro?.value);
-      const id = (barber === 'Pablo') ? 'schedule_Pablo' : 'schedule_Yure';
+      if (!isOpen) {
+        // Se o barbeiro for fechado, limpa toda a configuração no Firestore
+        await setDoc(doc(db, 'settings', id), {
+          open: false,
+          slotStart: '',
+          slotEnd: '',
+          slotStep: 0,
+          lunchStart: '',
+          lunchEnd: ''
+        }, { merge: true });
+
+        // Atualiza o cache local e UI
+        barberStatusCache[barber] = false;
+        cfgStart.value = '';
+        cfgEnd.value = '';
+        cfgStep.value = '';
+        cfgLunchStart.value = '';
+        cfgLunchEnd.value = '';
+
+        alert(`O barbeiro ${barber} foi marcado como FECHADO e os horários foram resetados.`);
+        await renderSchedulePreview();
+        return;
+      }
+
+      // Se estiver aberto, valida os campos
+      if (!cfgStart.value || !cfgEnd.value) {
+        alert('Informe o horário de início e término antes de salvar.');
+        return;
+      }
+
+      if (!stepVal || stepVal <= 0) {
+        alert('Intervalo inválido. Use um valor maior que 0.');
+        return;
+      }
+
+      // Salva os dados completos quando aberto
       await setDoc(doc(db, 'settings', id), {
-        open: cfgOpen?.value === 'true',
+        open: true,
         slotStart: cfgStart?.value || '09:30',
-        slotEnd:   cfgEnd?.value   || '19:00',
-        slotStep:  stepVal,
-        lunchStart: (cfgLunchStart?.value || '').trim(),
-        lunchEnd:   (cfgLunchEnd?.value   || '').trim()
+        slotEnd: cfgEnd?.value || '19:00',
+        slotStep: stepVal,
+        lunchStart: cfgLunchStart?.value ? cfgLunchStart.value.trim() : '',
+        lunchEnd: cfgLunchEnd?.value ? cfgLunchEnd.value.trim() : ''
       }, { merge: true });
-      alert('Configuração de horários salva!');
-      // Recarrega os dados salvos e renderiza novamente o preview
+
+      barberStatusCache[barber] = true;
+      alert(`Configuração de horários salva com sucesso para ${barber}!`);
       await loadScheduleToUI(cfgBarbeiro.value);
       await renderSchedulePreview();
-    } catch (e) {
-      console.error('Erro ao salvar configuração de horário:', e);
-      alert('Não foi possível salvar agora.');
+
+    } catch (error) {
+      console.error('Erro ao salvar configuração de horários:', error);
+      alert('Não foi possível salvar agora. Verifique o console.');
     }
   });
 }
 
+
 const btnPrev = document.getElementById('btnPreviewAtualizar');
 if(btnPrev){ btnPrev.addEventListener('click', ()=> renderSchedulePreview()); }
+
+// --- Removido: botão Salvar agora aparece apenas conforme lógica progressiva na atualizarVisibilidadeCampos() ---
 // ===== FIM Configuração de horários (Admin) =====
 
 // Função para sair

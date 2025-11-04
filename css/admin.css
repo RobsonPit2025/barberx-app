@@ -434,3 +434,67 @@ body.menu-open {
 .status-pill.closed { background:#ffecec; border:1px solid #ff3b30; color:#7d1d1a; }
 .sidebar .system-status { margin-top:.75rem; padding:.5rem; border-top:1px solid #e0e0e0; }
 .sidebar .hint { display:block; font-size:.75rem; color:#666; margin-top:.25rem; }
+/* === Grade interativa de horário de almoço === */
+#gradeAlmoco {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.grade-horario {
+  background: #f2f2f2;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.grade-horario:hover {
+  background-color: #e6e6e6;
+}
+
+.grade-horario.selected-start {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.grade-horario.selected-end {
+  background-color: #28a745;
+  color: white;
+  border-color: #1e7e34;
+}
+
+.grade-horario.selected-range {
+  background-color: #d1ecf1;
+  color: #055160;
+  border-color: #bee5eb;
+}
+
+/* === Botão Salvar Configurações === */
+.btn-salvar {
+  background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.btn-salvar:hover {
+  background: linear-gradient(90deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-1px);
+}
+
+.btn-salvar:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}

@@ -361,9 +361,14 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!barberId) return null;
     const id = normalizeBarberId(barberId);
     const db = getFirestore();
-    const scheduleDocId = `schedule_${id.toLowerCase()}`;
-    const snap = await getDoc(doc(db, 'settings', scheduleDocId));
+    const scheduleDocIdLower = `schedule_${id.toLowerCase()}`;
+    const scheduleDocIdOriginal = `schedule_${id}`;
+    let snap = await getDoc(doc(db, 'settings', scheduleDocIdLower));
+    if (!snap.exists()) {
+      snap = await getDoc(doc(db, 'settings', scheduleDocIdOriginal));
+    }
     if (snap.exists()) {
+      console.log('[DEBUG] Documento encontrado:', snap.id, snap.data());
       const data = snap.data() || {};
       // Padroniza formato de horário (troca ponto por dois-pontos)
       const fixTimeFormat = t => typeof t === 'string' ? t.replace('.', ':') : t;
@@ -374,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function(){
       return data;
     }
     // fallback padrão caso ainda não tenha sido configurado no admin
+    console.warn('[DEBUG] Usando fallback de horários! Documento não encontrado para', scheduleDocIdLower, 'nem', scheduleDocIdOriginal);
     return { open: true, slotStart: '09:30', slotEnd: '19:00', slotStep: 35 };
   }
 
@@ -432,7 +438,14 @@ document.addEventListener('DOMContentLoaded', function(){
     selectHorario.innerHTML = '<option value="">Escolha o horário</option>';
 
     const sched = await getScheduleForBarber(barberId);
-    if (!sched || !sched.open) return; // se fechado, não popula mais nada
+    if (!sched || !sched.open) {
+      // Mostra aviso de agenda fechada
+      selectHorario.innerHTML = '<option value="">Agenda fechada no momento</option>';
+      selectHorario.disabled = true;
+      return;
+    } else {
+      selectHorario.disabled = false;
+    }
 
     const step = Number(sched.slotStep || 35);
     const slots = generateSlots(sched.slotStart, sched.slotEnd, step);
