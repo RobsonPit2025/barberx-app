@@ -2,12 +2,43 @@
 // Funções auxiliares de gerenciamento de locks
 // ==============================
 
-// Libera um lock específico pelo ID do documento
-async function releaseLockForData(lockId) {
+// Libera um lock específico pelo ID do documento ou por dados do agendamento
+async function releaseLockForData(dataOrId) {
   try {
-    const lockRef = doc(db, "slot_locks", lockId);
-    await deleteDoc(lockRef);
-    console.log(`[ADMIN] Lock ${lockId} liberado com sucesso.`);
+    // Detecta se veio um objeto completo (dados do agendamento)
+    let lockId = typeof dataOrId === "string" ? dataOrId : null;
+
+    // Se veio um objeto, tenta gerar um identificador único
+    if (!lockId && typeof dataOrId === "object" && dataOrId !== null) {
+      const { barbeiro, dataDia, horario } = dataOrId;
+      if (barbeiro && dataDia && horario) {
+        const q = query(
+          collection(db, "slot_locks"),
+          where("barbeiro", "==", barbeiro),
+          where("dataDia", "==", dataDia),
+          where("horario", "==", horario)
+        );
+        const snapshot = await getDocs(q);
+        let count = 0;
+        for (const docSnap of snapshot.docs) {
+          await deleteDoc(doc(db, "slot_locks", docSnap.id));
+          console.log(`[ADMIN] Lock removido: ${docSnap.id}`);
+          count++;
+        }
+        if (count > 0) return count;
+      }
+    }
+
+    // Se veio ID direto, deleta normalmente
+    if (lockId) {
+      const lockRef = doc(db, "slot_locks", lockId);
+      await deleteDoc(lockRef);
+      console.log(`[ADMIN] Lock ${lockId} liberado com sucesso.`);
+      return 1;
+    }
+
+    console.warn("[ADMIN] Nenhum lockId válido encontrado para liberar:", dataOrId);
+    return 0;
   } catch (error) {
     console.error("[ADMIN] Erro ao liberar lock:", error);
     throw error;
@@ -345,6 +376,23 @@ function renderAgendamento(dados, container, id) {
           if (r < 1) console.warn('Nenhum lock encontrado para liberar (nao_comprovado):', dados);
         } catch(e) { console.warn('Falha ao liberar lock (nao_comprovado):', e); }
         alert('Marcado como NÃO COMPROVADO. O horário foi liberado.');
+        // --- Garante que o horário volte a ficar disponível ---
+        try {
+          const scheduleRef = doc(db, 'settings', `schedule_${dados.barbeiro}`);
+          const scheduleSnap = await getDoc(scheduleRef);
+          if (scheduleSnap.exists()) {
+            const scheduleData = scheduleSnap.data();
+            if (Array.isArray(scheduleData.occupiedSlots)) {
+              const updatedSlots = scheduleData.occupiedSlots.filter(
+                h => !(h.horario === dados.horario && h.dataDia === dados.dataDia)
+              );
+              await updateDoc(scheduleRef, { occupiedSlots: updatedSlots });
+              console.log(`[ADMIN] Horário ${dados.horario} liberado para ${dados.barbeiro} em ${dados.dataDia}`);
+            }
+          }
+        } catch (err) {
+          console.error('[ADMIN] Falha ao liberar horário:', err);
+        }
         // Envia notificação ao cliente informando que o pagamento não foi comprovado
         try {
           const userTokenRef = doc(db, 'user_tokens', dados.userId);
@@ -425,6 +473,23 @@ function renderAgendamento(dados, container, id) {
         } catch(e) { console.warn('Falha ao liberar lock (remover-pos):', e); }
 
         alert('Agendamento removido. O horário foi liberado.');
+        // --- Garante que o horário volte a ficar disponível ---
+        try {
+          const scheduleRef = doc(db, 'settings', `schedule_${dataForRelease.barbeiro}`);
+          const scheduleSnap = await getDoc(scheduleRef);
+          if (scheduleSnap.exists()) {
+            const scheduleData = scheduleSnap.data();
+            if (Array.isArray(scheduleData.occupiedSlots)) {
+              const updatedSlots = scheduleData.occupiedSlots.filter(
+                h => !(h.horario === dataForRelease.horario && h.dataDia === dataForRelease.dataDia)
+              );
+              await updateDoc(scheduleRef, { occupiedSlots: updatedSlots });
+              console.log(`[ADMIN] Horário ${dataForRelease.horario} liberado para ${dataForRelease.barbeiro} em ${dataForRelease.dataDia}`);
+            }
+          }
+        } catch (err) {
+          console.error('[ADMIN] Falha ao liberar horário:', err);
+        }
       } catch (e) {
         console.error('Erro ao remover agendamento:', e);
         alert('Não foi possível remover agora.');
