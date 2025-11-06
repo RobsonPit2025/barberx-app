@@ -9,6 +9,10 @@
 </head>
 <body>
   <main class="app-container">
+    <!-- Logo redonda acima do título -->
+    <div class="logo-container">
+      <img src="img/logo_classic.png" alt="Logo Cruz_Styllos" class="logo-redonda">
+    </div>
     <h1>Cruz_Styllos</h1>
 
     <nav class="menu">
@@ -17,16 +21,66 @@
       <button onclick="window.location.href='imagens.html'">Imagens dos Cortes</button>
     </nav>
 
+    <button id="abrirTutorial">📘 Ver Tutorial</button>
+    <button onclick="window.open('https://www.instagram.com/cruz_styllos?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==', '_blank')">📸 Instagram</button>
+
     <section id="login" class="hidden">
       <h2>Login</h2>
       <input type="email" id="loginEmail" placeholder="Email" />
       <input type="password" id="loginSenha" placeholder="Senha" />
       <button onclick="fazerLogin()">Entrar</button>
     </section>
+
+    <!-- Modal Tutorial -->
+    <div id="tutorialModal" class="modal hidden">
+      <div class="modal-content">
+        <span class="fechar" id="fecharModal">&times;</span>
+        <h2>📘 Tutorial de Instalação no iPhone</h2>
+        <p>Olá, pessoal! 👋<br><br>
+        Quer receber nossos avisos e agendamentos direto na tela do seu iPhone? Siga o passo a passo exato abaixo!<br><br>
+        <strong>Atenção:</strong> Para as notificações funcionarem, o processo todo precisa terminar no navegador <strong>SAFARI</strong> (o ícone da bússola 🧭).<br><br>
+        <strong>PASSO 1: Abrir o link corretamente</strong><br>
+        Ao clicar no link <a href="https://barbex-app.web.app" target="_blank">https://barbex-app.web.app</a>, a tela pode abrir de dois jeitos:<br><br>
+        <strong>CASO A:</strong> Abriu direto no Safari (com a barra de endereço embaixo)<br>
+        Se você vê a barra de endereço e o botão de compartilhar [↑], pule para o PASSO 2.<br><br>
+        <strong>CASO B:</strong> Abriu numa tela interna de outro app (WhatsApp, Instagram, etc.)<br>
+        Se você vê um menu com três pontinhos (...) no canto inferior, siga as instruções abaixo primeiro:<br>
+        - Toque nos três pontinhos (...) no canto inferior direito.<br>
+        - Escolha a opção "Compartilhar".<br>
+        - No novo menu, talvez seja preciso tocar em "Mais".<br>
+        - Finalmente, toque em "Adicionar à Tela de Início".<br>
+        Depois de fazer isso, pule direto para o PASSO 3.<br><br>
+        <strong>PASSO 2: Adicionar à Tela de Início (pelo Safari)</strong><br>
+        - Toque no botão COMPARTILHAR: É o ícone de um quadrado com uma seta para cima [↑] na barra inferior.<br>
+        - Escolha "ADICIONAR À TELA DE INÍCIO": Role o menu para cima e toque na opção com um ícone de "+".<br>
+        - Confirme: Toque em "Adicionar" no canto superior direito.<br><br>
+        <strong>PASSO 3: Ativar as Notificações (O MAIS IMPORTANTE!)</strong><br>
+        - Vá para a tela inicial do seu iPhone e encontre o novo ícone "Cruz_Styllos".<br>
+        - Abra o site usando este novo ícone.<br>
+        - Faça seu acesso ou agendamento.<br>
+        - Quando o sistema pedir permissão para enviar notificações (pode ser ao abrir ou após uma ação), toque em "PERMITIR".<br><br>
+        ✅ Pronto! Agora você receberá a confirmação do PIX e outros avisos importantes diretamente na sua tela.
+        </p>
+      </div>
+    </div>
   </main>
+
+</main>
 
   <!-- ✅ Importando apenas o JS com Firebase -->
   <script type="module" src="js/index.js"></script>
   <script type="module" src="js/agendamento.js"></script>
+
+  <script>
+    const modal = document.getElementById('tutorialModal');
+    const btnAbrir = document.getElementById('abrirTutorial');
+    const btnFechar = document.getElementById('fecharModal');
+
+    btnAbrir.addEventListener('click', () => modal.classList.remove('hidden'));
+    btnFechar.addEventListener('click', () => modal.classList.add('hidden'));
+    window.addEventListener('click', (event) => {
+      if (event.target === modal) modal.classList.add('hidden');
+    });
+  </script>
 </body>
 </html>

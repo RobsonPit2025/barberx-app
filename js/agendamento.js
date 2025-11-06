@@ -144,6 +144,20 @@ document.addEventListener('visibilitychange', () => {
 
 // ===== Pagamento antecipado (metade/integral) — CLIENTE =====
 document.addEventListener('DOMContentLoaded', function(){
+  // ===== Modal de aviso de atrasos =====
+  window.addEventListener('load', () => {
+    const modalAviso = document.getElementById('avisoModal');
+    const fecharAviso = document.getElementById('fecharAviso');
+    if (modalAviso) {
+      modalAviso.classList.remove('hidden');
+      if (fecharAviso) {
+        fecharAviso.addEventListener('click', () => modalAviso.classList.add('hidden'));
+      }
+      window.addEventListener('click', (event) => {
+        if (event.target === modalAviso) modalAviso.classList.add('hidden');
+      });
+    }
+  });
   // ===== VIP cache/configuração =====
   let vipConfig = { enabled: false, emails: new Set(), uids: new Set(), maxActive: 2 };
   function isVipUser(user) {
