@@ -145,3 +145,18 @@ button:hover {
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
   border: 3px solid white;
 }
+
+/* ===== Ajuste Responsivo da Logo ===== */
+@media (min-width: 768px) {
+  .logo-redonda {
+    width: 90px;
+    height: 90px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .logo-redonda {
+    width: 80px;
+    height: 80px;
+  }
+}
