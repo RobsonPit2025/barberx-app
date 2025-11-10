@@ -784,6 +784,97 @@ const btnSalvar   = document.getElementById('btnSalvarHorario');
 const cfgDate     = document.getElementById('cfgDate');
 const cfgLunchStart = document.getElementById('cfgLunchStart');
 const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
+// ====== Lógica para exibir grade de ocupação manual após seleção de almoço ======
+// Mostrar grade de ocupação manual após selecionar horário de almoço
+const lunchStartInput = document.getElementById('cfgLunchStart');
+const lunchEndInput = document.getElementById('cfgLunchEnd');
+const manualDiv = document.getElementById('cfgManualBookingDiv');
+const gradeManual = document.getElementById('gradeManual');
+
+function renderManualBookingGrid() {
+  if (!lunchStartInput || !lunchEndInput || !manualDiv || !gradeManual) return;
+  if (!lunchStartInput.value || !lunchEndInput.value) {
+    manualDiv.classList.add('hidden');
+    return;
+  }
+
+  manualDiv.classList.remove('hidden');
+  gradeManual.innerHTML = '';
+
+  // gerar grade de horários livres com base na grade existente
+  const slots = Array.from(document.querySelectorAll('#gradeAlmoco > div')).map(div => div.textContent);
+  const lunchStart = lunchStartInput.value;
+  const lunchEnd = lunchEndInput.value;
+  let withinLunch = false;
+
+  slots.forEach(hh => {
+    if (hh === lunchStart) withinLunch = true;
+    if (!withinLunch) {
+      const item = document.createElement('div');
+      item.textContent = hh;
+      item.classList.add('manual-slot');
+      item.style.padding = '8px';
+      item.style.border = '1px solid #ccc';
+      item.style.borderRadius = '6px';
+      item.style.cursor = 'pointer';
+
+      item.addEventListener('click', async () => {
+        if (!isCurrentUserAdmin()) {
+          alert('Apenas administradores podem ocupar horários.');
+          return;
+        }
+        const nomeCliente = prompt('Nome do cliente:');
+        if (!nomeCliente) return;
+
+        const barbeiroAtual = normalizeBarberId(cfgBarbeiro?.value || '');
+        const dataDia = selectedDateISO();
+        const horario = hh;
+        const lockId = `${barbeiroAtual}_${dataDia}_${horario}`;
+        const createdBy = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin';
+
+        try {
+          await addDoc(collection(db, 'agendamentos'), {
+            nome: nomeCliente,
+            celular: '',
+            mensagem: '',
+            barbeiro: barbeiroAtual,
+            dataDia,
+            horario,
+            status: 'pendente',
+            paymentMethod: 'manual',
+            paymentStatus: 'paid',
+            servico: 'corte_maquina',
+            amount: 0,
+            totalPrice: 0,
+            amountOption: 'full',
+            criadoEm: serverTimestamp(),
+            lockId,
+            userId: null,
+            userEmail: '',
+            createdBy
+          });
+          alert(`Horário ${horario} ocupado para ${nomeCliente}.`);
+          item.textContent = `${horario} (ocupado)`;
+          item.style.opacity = '.45';
+          item.style.background = '#f3f4f6';
+          item.style.cursor = 'not-allowed';
+        } catch (e) {
+          console.error('Erro ao ocupar horário manualmente:', e);
+          alert('Não foi possível ocupar o horário agora.');
+        }
+      });
+
+      gradeManual.appendChild(item);
+    }
+    if (hh === lunchEnd) withinLunch = false;
+  });
+}
+
+// Observar mudanças nos inputs de almoço
+if (lunchStartInput && lunchEndInput) {
+  lunchStartInput.addEventListener('change', renderManualBookingGrid);
+  lunchEndInput.addEventListener('change', renderManualBookingGrid);
+}
 // --- Variáveis globais de almoço (disponíveis no window) ---
 window.lunchStart = '';
 window.lunchEnd = '';
@@ -838,18 +929,16 @@ function gerarGradeAlmoco() {
         window.lunchEnd = '';
         allButtons.forEach(b => b.classList.remove('selected-start', 'selected-end', 'selected-range'));
       }
-    });
-  });
 
-  // Atualiza inputs ocultos DINAMICAMENTE sempre que o usuário clicar
-  document.querySelectorAll('.grade-horario').forEach(btn => {
-    btn.addEventListener('click', () => {
+      // Atualiza inputs ocultos DINAMICAMENTE sempre que o usuário clicar
       const cfgLunchStart = document.getElementById('cfgLunchStart');
       const cfgLunchEnd   = document.getElementById('cfgLunchEnd');
       if (cfgLunchStart && cfgLunchEnd) {
         cfgLunchStart.value = window.lunchStart || '';
         cfgLunchEnd.value   = window.lunchEnd   || '';
         console.log(`[DEBUG] Atualizando inputs ocultos → Início: ${cfgLunchStart.value}, Fim: ${cfgLunchEnd.value}`);
+        // Chama renderManualBookingGrid assim que o segundo horário do almoço for selecionado
+        if (typeof renderManualBookingGrid === 'function') renderManualBookingGrid();
       }
     });
   });
@@ -1192,6 +1281,55 @@ async function renderSchedulePreview(){
     item.setAttribute('data-hh', hh);
     if (taken) { item.style.opacity = '.45'; item.style.background = '#f3f4f6'; }
     if (isLunch) { item.style.borderStyle = 'dashed'; item.style.background = '#fff7ed'; }
+
+    // Bloco para ocupação manual de horários por administradores
+    if (!taken && !isLunch) {
+      item.addEventListener('click', async () => {
+        if (!isCurrentUserAdmin()) {
+          alert('Apenas administradores podem ocupar horários.');
+          return;
+        }
+        const nomeCliente = prompt('Nome do cliente:');
+        if (!nomeCliente) return;
+
+        const barbeiroAtual = normalizeBarberId(cfgBarbeiro?.value || '');
+        const dataDia = selectedDateISO();
+        const horario = hh;
+        const lockId = `${barbeiroAtual}_${dataDia}_${horario}`;
+        const createdBy = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'admin';
+
+        try {
+          await addDoc(collection(db, 'agendamentos'), {
+            nome: nomeCliente,
+            celular: '',
+            mensagem: '',
+            barbeiro: barbeiroAtual,
+            dataDia,
+            horario,
+            status: 'pendente',
+            paymentMethod: 'manual',
+            paymentStatus: 'paid',
+            servico: 'corte_maquina',
+            amount: 0,
+            totalPrice: 0,
+            amountOption: 'full',
+            criadoEm: serverTimestamp(),
+            lockId,
+            userId: null,
+            userEmail: '',
+            createdBy
+          });
+          alert(`Horário ${horario} ocupado para ${nomeCliente}.`);
+          item.textContent = `${horario} (ocupado)`;
+          item.style.opacity = '.45';
+          item.style.background = '#f3f4f6';
+        } catch (e) {
+          console.error('Erro ao ocupar horário manualmente:', e);
+          alert('Não foi possível ocupar o horário agora.');
+        }
+      });
+    }
+
     box.appendChild(item);
   }
 }
